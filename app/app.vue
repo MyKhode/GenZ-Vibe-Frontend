@@ -1,0 +1,46 @@
+<template>
+  <div>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </div>
+</template>
+
+<script setup lang="ts">
+useHead({
+  htmlAttrs: {
+    lang: 'en'
+  },
+  bodyAttrs: {
+    class: 'dark'
+  },
+  title: 'Peak Premium Audio - Gaming Headsets'
+})
+</script>
+
+<style>
+@import "assets/css/tailwind.css";
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--secondary));
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: hsl(var(--secondary));
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.8);
+}
+</style>

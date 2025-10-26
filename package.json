@@ -1,0 +1,23 @@
+{
+  "name": "genz-vibe-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "lucide-vue-next": "^0.548.0",
+    "nuxt": "^4.2.0"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.71",
+    "@nuxt/ui": "^4.1.0",
+    "tailwindcss": "^4.1.16"
+  },
+  "author": "syvixor",
+  "license": "MIT"
+}
