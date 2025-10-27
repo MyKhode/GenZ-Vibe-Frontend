@@ -25,7 +25,7 @@
         <span class="text-foreground">PREMIUM</span><br>
         <span class="text-primary">AUDIO</span>
       </h1>
-      <p class="text-muted-foreground text-sm">Buy Now, Pay Later</p>
+      <p class="text-muted-foreground text-sm">Buy Now, Pay Now</p>
     </div>
 
     <!-- Featured Products -->
@@ -36,12 +36,17 @@
       </h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ProductCard 
-          v-for="product in products" 
-          :key="product.id"
-          :product="product"
-          @click="$emit('selectProduct', product)"
-        />
+        <template v-if="loading === true">
+          <ProductCardSkeleton v-for="i in (skeletonCount || 4)" :key="`pls-${i}`" />
+        </template>
+        <template v-else>
+          <ProductCard 
+            v-for="product in products" 
+            :key="product.id"
+            :product="product"
+            @click="$emit('selectProduct', product)"
+          />
+        </template>
       </div>
     </div>
 
@@ -66,10 +71,16 @@
 <script setup lang="ts">
 import { Headphones, Search, SlidersHorizontal, Home, ShoppingCart, FileText, Heart } from 'lucide-vue-next'
 import type { Product } from '~/types/product'
+import ProductCardSkeleton from '~/components/ProductCardSkeleton.vue'
 
-defineProps<{
+withDefaults(defineProps<{
   products: Product[]
-}>()
+  loading?: boolean
+  skeletonCount?: number
+}>(), {
+  loading: false,
+  skeletonCount: 4
+})
 
 defineEmits<{
   selectProduct: [product: Product]

@@ -1,5 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // Explicitly use the `app/` folder as source directory so Nuxt scans app/pages
+  srcDir: 'app',
   devtools: { enabled: true },
   
   modules: ['@nuxt/ui'],

@@ -11,7 +11,7 @@
           @click.stop
         >
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-foreground">Filters</h2>
+            <h2 class="text-2xl font-bold text-foreground">{{ t('menu.filter') }}</h2>
             <button 
               class="p-2 hover:bg-secondary rounded-lg transition-colors"
               @click="$emit('close')"
@@ -23,7 +23,7 @@
           <div class="space-y-6">
             <!-- Type Filter -->
             <div>
-              <h3 class="font-semibold text-foreground mb-3">Type</h3>
+              <h3 class="font-semibold text-foreground mb-3">{{ t('product.type') }}</h3>
               <div class="space-y-2">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input 
@@ -89,35 +89,7 @@
               </div>
             </div>
 
-            <!-- Rating Filter -->
-            <div>
-              <h3 class="font-semibold text-foreground mb-3">Rating</h3>
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    v-model="localFilters.ratings"
-                    :value="5"
-                    class="w-4 h-4 rounded border-gray-300"
-                  />
-                  <div class="flex items-center gap-1">
-                    <Star v-for="i in 5" :key="i" class="w-3 h-3 fill-primary text-primary" />
-                  </div>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    v-model="localFilters.ratings"
-                    :value="4"
-                    class="w-4 h-4 rounded border-gray-300"
-                  />
-                  <div class="flex items-center gap-1">
-                    <Star v-for="i in 4" :key="i" class="w-3 h-3 fill-primary text-primary" />
-                    <span class="text-xs text-muted-foreground">& up</span>
-                  </div>
-                </label>
-              </div>
-            </div>
+            
           </div>
 
           <div class="flex gap-3 mt-6">
@@ -141,13 +113,13 @@
 </template>
 
 <script setup lang="ts">
-import { X, Star } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
+import { useI18n } from '~/composables/useI18n'
 
 interface Filters {
   types: string[]
   priceRange: string
-  ratings: number[]
 }
 
 const props = defineProps<{
@@ -169,8 +141,7 @@ watch(() => props.filters, (newFilters) => {
 const handleReset = () => {
   localFilters.value = {
     types: [],
-    priceRange: 'all',
-    ratings: []
+    priceRange: 'all'
   }
 }
 
@@ -178,6 +149,8 @@ const handleApply = () => {
   emit('apply', localFilters.value)
   emit('close')
 }
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

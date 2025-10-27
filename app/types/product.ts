@@ -3,10 +3,9 @@ export interface Product {
   name: string
   type: string
   price: number
-  rating: number
-  image: string
+  images: string[]
   colors: string[]
-  microphone: string
   description: string
   features: string[]
+  options?: string[]
 }
