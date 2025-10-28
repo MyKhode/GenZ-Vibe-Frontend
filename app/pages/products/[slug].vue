@@ -10,8 +10,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left: Basic info and image (desktop); full on mobile -->
       <section>
-        <!-- Left column: Image only on desktop; top on mobile -->
-        <ProductGallery :images="images" :alt="pName" :colors="product.colors" class="mb-4" />
+        <!-- Static image area tied to selected option (no auto-slide) -->
+        <div class="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-secondary mb-4">
+          <img 
+            v-if="currentImage"
+            :src="currentImage"
+            :alt="pName"
+            class="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
       </section>
 
       <!-- Right: description and other details (desktop); follows image on mobile) -->
@@ -35,13 +43,13 @@
             </button>
             <div v-else class="w-full flex items-center justify-center gap-4">
               <button 
-                class="w-10 h-10 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-lg font-bold border border-border"
+                class="w-13.5 h-13.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-lg font-bold border border-border"
                 @click="decrement()"
                 aria-label="Decrease quantity"
               >-</button>
-              <span class="flex-1 h-10 inline-flex items-center justify-center text-center text-lg font-semibold rounded-lg border border-border bg-secondary text-foreground">{{ qtyInCart }}</span>
+              <span class="flex-1 h-13.5 inline-flex items-center justify-center text-center text-lg font-semibold rounded-lg border border-border bg-secondary text-foreground">{{ qtyInCart }}</span>
               <button 
-                class="w-10 h-10 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-lg font-bold border border-border"
+                class="w-13.5 h-13.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-lg font-bold border border-border"
                 @click="increment()"
                 aria-label="Increase quantity"
               >+</button>
@@ -58,24 +66,22 @@
         <h2 class="sr-only">Product details</h2>
         <p class="text-muted-foreground leading-relaxed mb-4">{{ pDesc }}</p>
 
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div v-if="(product.options?.length || 0) > 0">
-            <p class="text-xs text-muted-foreground mb-1">{{ t('product.option') }}</p>
-            <select v-model="selectedOption" class="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm">
-              <option v-for="op in pOptions" :key="op" :value="op">{{ op }}</option>
-            </select>
-          </div>
-          <div>
-            <p class="text-xs text-muted-foreground mb-1">{{ t('product.availableColors') }}</p>
-            <div class="flex gap-2">
-              <span 
-                v-for="(color, idx) in product.colors"
-                :key="idx"
-                class="w-6 h-6 rounded-full border border-border"
-                :class="getColorClass(color)"
-                :aria-label="color"
-              />
-            </div>
+        <div class="mb-6" v-if="(product.options?.length || 0) > 0">
+          <p class="text-xs text-muted-foreground mb-2">{{ t('product.option') }}</p>
+          <!-- Responsive chip selection instead of dropdown -->
+          <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="t('product.option')">
+            <button
+              v-for="op in pOptions"
+              :key="op"
+              type="button"
+              class="px-3 py-2 rounded-lg border text-sm transition-colors"
+              :class="selectedOption === op ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-foreground border-border hover:bg-secondary/80'"
+              :aria-checked="selectedOption === op"
+              role="radio"
+              @click="selectedOption = op"
+            >
+              {{ op }}
+            </button>
           </div>
         </div>
 
@@ -105,7 +111,6 @@ import type { Product } from '~/types/product'
 import { fetchProducts } from '~/services/products'
 import { toSlug } from '~/utils/slug'
 import { useCart } from '~/composables/useCart'
-import ProductGallery from '~/components/ProductGallery.vue'
 import { useI18n } from '~/composables/useI18n'
 
 const route = useRoute()
@@ -131,6 +136,15 @@ const pOptions = computed<string[]>(() => {
   if (locale.value === 'km') return p.optionsKm || p.options || []
   return p.options || []
 })
+
+const selectedIndex = computed(() => {
+  const list = pOptions.value
+  if (!list.length) return 0
+  const idx = list.indexOf(selectedOption.value || list[0])
+  return idx >= 0 ? idx : 0
+})
+
+const currentImage = computed(() => images.value[selectedIndex.value] || images.value[0] || '')
 
 const qtyInCart = computed(() => (product.value ? countOf(product.value.id) : 0))
 

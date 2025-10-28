@@ -18,20 +18,15 @@
           class="bg-card rounded-2xl p-4 lg:p-6 border border-border"
         >
           <div class="flex gap-4">
-            <!-- Product Image -->
-            <div class="w-24 h-24 bg-secondary rounded-xl flex items-center justify-center flex-shrink-0">
-              <Headphones class="w-16 h-16 text-foreground/80" />
+            <div class="w-24 h-24 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-border bg-secondary">
+              <img v-if="item.images && item.images.length" :src="item.images[0]" :alt="item.name" class="w-full h-full object-cover" />
+              <Headphones v-else class="w-16 h-16 text-foreground/80" />
             </div>
-
-            <!-- Product Info -->
             <div class="flex-1 min-w-0">
               <h3 class="font-bold text-foreground text-lg mb-1 truncate">{{ item.name }}</h3>
               <p class="text-sm text-muted-foreground mb-2">{{ item.type }}</p>
-              
               <p class="text-xl font-bold text-foreground">${{ item.price.toFixed(2) }}</p>
             </div>
-
-            <!-- Remove Button -->
             <button 
               class="p-2 hover:bg-secondary rounded-lg transition-colors self-start"
               @click="$emit('removeFromCart', index)"
@@ -42,9 +37,7 @@
         </div>
       </div>
 
-      <!-- Checkout Details -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Buyer + Delivery + Payment -->
         <div class="space-y-6 lg:col-span-2">
           <!-- Buyer Info -->
           <section class="bg-card rounded-2xl p-6 border border-border">
@@ -82,32 +75,10 @@
               </div>
             </div>
           </section>
-
-          <!-- Payment Method -->
-          <section class="bg-card rounded-2xl p-6 border border-border">
-            <h2 class="text-xl font-bold text-foreground mb-4">{{ t('checkout.payment') }}</h2>
-            <div class="space-y-4">
-              <label class="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-secondary">
-                <input type="radio" class="accent-primary" value="khqr" v-model="form.paymentMethod" />
-                <div class="flex flex-col">
-                  <span class="font-medium text-foreground">{{ t('checkout.bakongKhqr') }}</span>
-                  <span class="text-sm text-muted-foreground">{{ t('checkout.khqrDesc') }}</span>
-                </div>
-              </label>
-              <div v-if="form.paymentMethod === 'khqr'" class="mt-2 p-4 rounded-lg border border-dashed border-border bg-background/50">
-                <p class="text-sm text-muted-foreground">{{ t('checkout.khqrNote') }}</p>
-                <!-- Placeholder for KHQR image/QR generation in future -->
-                <div class="mt-3 h-40 rounded-md bg-secondary flex items-center justify-center text-muted-foreground text-sm">
-                  {{ t('checkout.khqrPlaceholder') }}
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
 
         <!-- Summary -->
         <div class="lg:col-span-1">
-          <!-- Cart Summary -->
           <div class="bg-card rounded-2xl p-6 border border-border sticky top-24">
             <div class="space-y-3 mb-4">
               <div class="flex justify-between text-foreground">
@@ -128,24 +99,38 @@
               </div>
             </div>
             
-            <button 
-              class="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl transition-colors text-sm uppercase tracking-wide"
-              @click="onCheckout"
-            >
-              {{ t('cart.checkout') }}
-            </button>
+            <div class="space-y-4">
+              <button 
+                type="button"
+                class="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl transition-colors text-sm uppercase tracking-wide"
+                @click="onCheckout"
+              >
+                {{ isLoggedIn ? t('cart.checkout') : t('otp.payAndLogin') }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- OTP Modal -->
+    <OtpModal 
+      :open="showOtpModal" 
+      :phone="formatKhPhone(form.phone)" 
+      @close="showOtpModal = false" 
+      @verified="handleOtpVerified" 
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useAuth } from '~/composables/useAuth'
+import { useApi } from '~/composables/useApi'
 import { ShoppingCart, Headphones, Trash2 } from 'lucide-vue-next'
 import type { Product } from '~/types/product'
 import { useI18n } from '~/composables/useI18n'
+import OtpModal from '~/components/OtpModal.vue'
 
 const props = defineProps<{
   cartItems: Product[]
@@ -160,59 +145,125 @@ const subtotal = computed(() => {
 })
 
 const tax = computed(() => {
-  return subtotal.value * 0.08 // 8% tax
+  return subtotal.value * 0.08
 })
 
 const total = computed(() => {
-  return subtotal.value + 10 + tax.value // +10 for shipping
+  return subtotal.value + 10 + tax.value
 })
-const { t } = useI18n()
 
-// Simple form model
+const { t } = useI18n()
+const authState = useAuth()
+const api = useApi()
+const isLoggedIn = computed(() => !!authState.token.value)
+
 const form = ref({
   name: '',
   phone: '',
   address: '',
   province: '',
   note: '',
-  paymentMethod: 'khqr' as 'khqr',
 })
 
-// Cambodia provinces (24 provinces, excluding Phnom Penh)
 const provinces = [
-  'Banteay Meanchey',
-  'Battambang',
-  'Kampong Cham',
-  'Kampong Chhnang',
-  'Kampong Speu',
-  'Kampong Thom',
-  'Kampot',
-  'Kandal',
-  'Kep',
-  'Koh Kong',
-  'Kratié',
-  'Mondulkiri',
-  'Oddar Meanchey',
-  'Pailin',
-  'Preah Sihanouk',
-  'Preah Vihear',
-  'Pursat',
-  'Prey Veng',
-  'Ratanakiri',
-  'Siem Reap',
-  'Stung Treng',
-  'Svay Rieng',
-  'Takeo',
-  'Tbong Khmum',
+  'Banteay Meanchey', 'Battambang', 'Kampong Cham', 'Kampong Chhnang',
+  'Kampong Speu', 'Kampong Thom', 'Kampot', 'Kandal', 'Kep', 'Koh Kong',
+  'Kratié', 'Mondulkiri', 'Oddar Meanchey', 'Pailin', 'Preah Sihanouk',
+  'Preah Vihear', 'Pursat', 'Prey Veng', 'Ratanakiri', 'Siem Reap',
+  'Stung Treng', 'Svay Rieng', 'Takeo', 'Tbong Khmum',
 ]
 
-const onCheckout = () => {
-  // Minimal front-end validation
+const showOtpModal = ref(false)
+
+const onCheckout = async () => {
   if (!form.value.name || !form.value.phone || !form.value.address || !form.value.province) {
     alert(t('checkout.fillRequired'))
     return
   }
-  // Placeholder action
-  alert(t('checkout.submitted'))
+  if (!isLoggedIn.value) {
+    showOtpModal.value = true
+    return
+  } else {
+    await upsertUserProfile()
+    await saveOrder()
+  }
 }
+
+const formatKhPhone = (raw: string) => {
+  const s = (raw || '').replace(/\s+/g, '')
+  if (!s) return ''
+  if (s.startsWith('+')) return s
+  if (s.startsWith('0')) return '+855' + s.slice(1)
+  return '+855' + s
+}
+
+const handleOtpVerified = async (token: string) => {
+  if (token) {
+    authState.setToken(token)
+  }
+  await upsertUserProfile()
+  alert(t('otp.verified'))
+  await saveOrder()
+  showOtpModal.value = false
+}
+
+const saveOrder = async () => {
+  try {
+    const userInfo = `${form.value.name}, ${form.value.phone}, ${form.value.address}, ${form.value.province}`
+    const payload = {
+      product_name: props.cartItems.map((p) => p.name).join(', '),
+      product_option: props.cartItems.map((p) => (p.options ? p.options[0] : 'Standard')).join(', '),
+      quantity: props.cartItems.length,
+      price: total.value.toFixed(2),
+      user_info: userInfo,
+      note: form.value.note,
+    }
+    const res = await api.post('/orders/', payload)
+    if (!res.ok) throw new Error('Order save failed')
+    alert('✅ Order successfully submitted!')
+  } catch (e) {
+    console.error(e)
+    alert('❌ Failed to submit order.')
+  }
+}
+
+const fetchMe = async () => {
+  try {
+    const res = await api.get('/user/me')
+    if (!res.ok) return
+    const me = await res.json()
+    authState.setProfile(me)
+    form.value.name = me.full_name || ''
+    form.value.phone = me.phone_number || ''
+    form.value.address = me.address || ''
+    form.value.province = me.province || ''
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const upsertUserProfile = async () => {
+  try {
+    const body = {
+      full_name: form.value.name,
+      phone_number: formatKhPhone(form.value.phone),
+      address: form.value.address,
+      province: form.value.province,
+      note: form.value.note,
+    }
+    const res = await api.post('/user/me', body, { method: 'PUT' })
+    if (!res.ok) return
+    const updated = await res.json()
+    authState.setProfile(updated)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+onMounted(() => {
+  authState.loadFromStorage()
+  if (isLoggedIn.value) {
+    fetchMe()
+  }
+})
 </script>

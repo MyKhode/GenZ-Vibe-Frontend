@@ -47,6 +47,6 @@ const { t } = useI18n()
 </script>
 
 <style scoped>
-.slide-up-enter-active, .slide-up-leave-active { transition: all .2s ease; }
+.slide-up-enter-active, .slide-up-leave-active { transition: all .14s ease-out; }
 .slide-up-enter-from, .slide-up-leave-to { opacity: 0; transform: translateY(8px); }
 </style>

@@ -28,6 +28,16 @@
       </NuxtLink>
 
       <NuxtLink 
+        to="/themes"
+        class="flex flex-col items-center gap-1 p-2 transition-colors"
+        :class="isActive('/themes') ? 'text-primary' : 'text-muted-foreground'"
+        :aria-label="t('nav.themes')"
+      >
+        <Palette class="w-5 h-5" />
+        <span class="text-xs font-medium">{{ t('nav.themes') }}</span>
+      </NuxtLink>
+
+      <NuxtLink 
         to="/orders"
         class="flex flex-col items-center gap-1 p-2 transition-colors"
         :class="isActive('/orders') ? 'text-primary' : 'text-muted-foreground'"
@@ -36,16 +46,6 @@
         <FileText class="w-5 h-5" />
         <span class="text-xs font-medium">{{ t('nav.orders') }}</span>
       </NuxtLink>
-
-      <NuxtLink 
-        to="/contact"
-        class="flex flex-col items-center gap-1 p-2 transition-colors"
-        :class="isActive('/contact') ? 'text-primary' : 'text-muted-foreground'"
-        :aria-label="t('nav.contact')"
-      >
-        <Mail class="w-5 h-5" />
-        <span class="text-xs font-medium">{{ t('nav.contact') }}</span>
-      </NuxtLink>
     </div>
   </nav>
 </template>
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, ShoppingCart, FileText, Mail } from 'lucide-vue-next'
+import { Home, ShoppingCart, FileText, Palette } from 'lucide-vue-next'
 import { useCart } from '~/composables/useCart'
 import { useI18n } from '~/composables/useI18n'
 

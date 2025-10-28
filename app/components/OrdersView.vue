@@ -1,69 +1,67 @@
 <template>
   <div>
     <h1 class="font-display text-4xl lg:text-5xl font-bold text-foreground mb-8">
-      Order <span class="text-primary">History</span>
+      {{ t('nav.orders') }}
     </h1>
 
-    <div v-if="orders.length === 0" class="text-center py-16">
+    <div v-if="!isLoggedIn" class="text-center py-16">
       <Package class="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-      <h2 class="text-2xl font-bold text-foreground mb-2">No orders yet</h2>
-      <p class="text-muted-foreground mb-6">Your order history will appear here</p>
+      <h2 class="text-2xl font-bold text-foreground mb-2">{{ t('orders.loginRequired') }}</h2>
+      <p class="text-muted-foreground mb-6">{{ t('orders.loginMessage') }}</p>
     </div>
 
-    <div v-else class="space-y-6">
-      <div 
-        v-for="order in orders" 
-        :key="order.id"
-        class="bg-card rounded-2xl p-6 border border-border"
-      >
-        <!-- Order Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
-          <div>
-            <h3 class="font-bold text-foreground text-lg mb-1">Order #{{ order.id }}</h3>
-            <p class="text-sm text-muted-foreground">{{ order.date }}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span 
-              class="px-4 py-2 rounded-full text-sm font-semibold"
-              :class="getStatusClass(order.status)"
-            >
-              {{ order.status }}
-            </span>
-          </div>
-        </div>
+    <div v-else-if="loading" class="text-center py-16">
+      <div class="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+      <p class="text-muted-foreground mt-4">{{ t('orders.loading') }}</p>
+    </div>
 
-        <!-- Order Items -->
-        <div class="space-y-4 mb-4">
-          <div 
-            v-for="item in order.items" 
-            :key="item.id"
-            class="flex gap-4"
-          >
-            <div class="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-              <Headphones class="w-12 h-12 text-foreground/80" />
+    <div v-else-if="orders.length === 0" class="text-center py-16">
+      <Package class="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+      <h2 class="text-2xl font-bold text-foreground mb-2">{{ t('orders.empty') }}</h2>
+      <p class="text-muted-foreground mb-6">{{ t('orders.emptyMessage') }}</p>
+    </div>
+
+    <div v-else>
+      <div class="flex justify-between items-center mb-6">
+        <p class="text-muted-foreground">{{ t('orders.total').replace('{count}', String(orders.length)) }}</p>
+        <button class="text-sm text-primary hover:underline" @click="fetchOrders">{{ t('orders.refresh') }}</button>
+      </div>
+
+      <div class="space-y-6">
+        <div 
+          v-for="order in orders" 
+          :key="order.id"
+          class="bg-card rounded-2xl p-6 border border-border"
+        >
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-border">
+            <div>
+              <h3 class="font-bold text-foreground text-lg mb-1">{{ t('orders.orderNumber').replace('{id}', order.id) }}</h3>
+              <p class="text-sm text-muted-foreground">{{ formatDate(order.created_at) }}</p>
             </div>
-            <div class="flex-1 min-w-0">
-              <h4 class="font-semibold text-foreground truncate">{{ item.name }}</h4>
-              <p class="text-sm text-muted-foreground">Quantity: {{ item.quantity }}</p>
-              <p class="text-sm font-semibold text-foreground">${{ item.price.toFixed(2) }}</p>
+            <div class="text-xl font-bold text-foreground">${{ Number(order.price || 0).toFixed(2) }}</div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex gap-4">
+              <div class="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
+                <Headphones class="w-12 h-12 text-foreground/80" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-foreground">{{ order.product_name }}</h4>
+                <p class="text-sm text-muted-foreground">{{ order.product_option }}</p>
+                <p class="text-sm text-muted-foreground">{{ t('orders.quantity') }}: {{ order.quantity }}</p>
+              </div>
+            </div>
+
+            <div v-if="order.user_info" class="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-3">
+              <p class="font-semibold text-foreground mb-1">{{ t('orders.deliveryInfo') }}</p>
+              <p>{{ order.user_info }}</p>
+            </div>
+
+            <div v-if="order.note" class="text-sm text-muted-foreground">
+              <span class="font-semibold text-foreground">{{ t('orders.note') }}:</span> {{ order.note }}
             </div>
           </div>
-        </div>
-
-        <!-- Order Total -->
-        <div class="pt-4 border-t border-border flex justify-between items-center">
-          <span class="text-foreground font-semibold">Total</span>
-          <span class="text-xl font-bold text-foreground">${{ order.total.toFixed(2) }}</span>
-        </div>
-
-        <!-- Order Actions -->
-        <div class="flex gap-3 mt-4">
-          <button class="flex-1 bg-secondary hover:bg-secondary/80 text-foreground font-semibold py-3 rounded-xl transition-colors text-sm">
-            Track Order
-          </button>
-          <button class="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-xl transition-colors text-sm">
-            View Details
-          </button>
         </div>
       </div>
     </div>
@@ -71,57 +69,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { Package, Headphones } from 'lucide-vue-next'
+import { useApi } from '~/composables/useApi'
+import { useAuth } from '~/composables/useAuth'
+import { useI18n } from '~/composables/useI18n'
 
-interface OrderItem {
-  id: number
-  name: string
-  quantity: number
-  price: number
-}
+const api = useApi()
+const auth = useAuth()
+const { t } = useI18n()
+const isLoggedIn = computed(() => !!auth.token.value)
 
-interface Order {
-  id: string
-  date: string
-  status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled'
-  items: OrderItem[]
-  total: number
-}
+type Order = any
+const orders = ref<Order[]>([])
+const loading = ref(false)
 
-const orders = ref<Order[]>([
-  {
-    id: '10234',
-    date: 'October 20, 2025',
-    status: 'Delivered',
-    items: [
-      { id: 1, name: 'G522 Lightspeed', quantity: 1, price: 169.99 }
-    ],
-    total: 189.99
-  },
-  {
-    id: '10233',
-    date: 'October 15, 2025',
-    status: 'Shipped',
-    items: [
-      { id: 2, name: 'G733 Lightspeed', quantity: 2, price: 119.00 }
-    ],
-    total: 258.00
-  }
-])
-
-const getStatusClass = (status: Order['status']) => {
-  switch (status) {
-    case 'Processing':
-      return 'bg-yellow-500/20 text-yellow-500'
-    case 'Shipped':
-      return 'bg-blue-500/20 text-blue-500'
-    case 'Delivered':
-      return 'bg-green-500/20 text-green-500'
-    case 'Cancelled':
-      return 'bg-red-500/20 text-red-500'
-    default:
-      return 'bg-gray-500/20 text-gray-500'
+const fetchOrders = async () => {
+  if (!isLoggedIn.value) return
+  loading.value = true
+  try {
+    const res = await api.get('/orders/')
+    if (!res.ok) throw new Error('Failed to load orders')
+    const data = await res.json()
+    orders.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error(e)
+    orders.value = []
+  } finally {
+    loading.value = false
   }
 }
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+onMounted(() => {
+  auth.loadFromStorage()
+  if (isLoggedIn.value) fetchOrders()
+})
+
+watch(() => auth.token.value, (v) => {
+  if (v) fetchOrders()
+})
 </script>

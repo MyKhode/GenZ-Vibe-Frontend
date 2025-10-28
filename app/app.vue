@@ -43,4 +43,21 @@ useHead({
 *::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.8);
 }
+
+/* Make all buttons feel clickable */
+button,
+[type="button"],
+[type="submit"],
+[type="reset"],
+[role="button"],
+.btn {
+  cursor: pointer;
+}
+
+button:disabled,
+[type="button"]:disabled,
+[type="submit"]:disabled,
+[type="reset"]:disabled {
+  cursor: not-allowed;
+}
 </style>

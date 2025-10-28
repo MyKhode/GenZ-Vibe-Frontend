@@ -28,6 +28,16 @@
       </NuxtLink>
 
       <NuxtLink 
+        to="/themes"
+        class="p-3 rounded-lg transition-colors"
+        :class="isActive('/themes') ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-muted-foreground'"
+        :aria-label="t('nav.themes')"
+        :title="t('nav.themes')"
+      >
+        <Palette class="w-5 h-5" />
+      </NuxtLink>
+
+      <NuxtLink 
         to="/orders"
         class="p-3 rounded-lg transition-colors"
         :class="isActive('/orders') ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-muted-foreground'"
@@ -36,16 +46,6 @@
       >
         <FileText class="w-5 h-5" />
       </NuxtLink>
-
-      <NuxtLink 
-        to="/contact"
-        class="p-3 rounded-lg transition-colors"
-        :class="isActive('/contact') ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-muted-foreground'"
-        :aria-label="t('nav.contact')"
-        :title="t('nav.contact')"
-      >
-        <Mail class="w-5 h-5" />
-      </NuxtLink>
     </div>
   </aside>
 </template>
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, ShoppingCart, FileText, Mail } from 'lucide-vue-next'
+import { Home, ShoppingCart, FileText, Palette } from 'lucide-vue-next'
 import { useCart } from '~/composables/useCart'
 import { useI18n } from '~/composables/useI18n'
 

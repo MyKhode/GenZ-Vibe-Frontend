@@ -1,5 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  runtimeConfig: {
+    public: {
+      // Support both env names for compatibility
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.NUXT_PUBLIC_API_BASE_URL || ''
+    }
+  },
   // Explicitly use the `app/` folder as source directory so Nuxt scans app/pages
   srcDir: 'app',
   devtools: { enabled: true },

@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue'
 
-type Locale = 'en' | 'km'
+export type Locale = 'en' | 'km'
 
 const messages: Record<Locale, Record<string, string>> = {
   en: {
@@ -38,6 +38,21 @@ const messages: Record<Locale, Record<string, string>> = {
     'cart.checkout': 'Proceed to Checkout',
     'cart.buyNow': 'Buy Now',
     'cart.addedCount': '~ {count} products',
+    // OTP / Auth
+    'otp.payAndLogin': 'Pay • Login by Phone',
+    'otp.enterCode': 'Enter the 6-digit code sent to your phone',
+    'otp.codePlaceholder': '123456',
+    'otp.verify': 'Verify Code',
+    'otp.verifying': 'Verifying... ',
+    'otp.resend': 'Resend',
+    'otp.sending': 'Sending... ',
+    'otp.sent': 'OTP sent!',
+    'otp.verified': 'Phone number verified and logged in!',
+    'otp.verifyFailed': 'Verification failed. Please check the code.',
+    'otp.sendFailed': 'Failed to send OTP. Try again.',
+    'otp.noSession': 'No OTP session found. Please resend the code.',
+    'otp.phoneRequired': 'Please enter your phone number first.',
+    'otp.firebaseNotReady': 'Firebase not loaded yet. Please wait and try again.',
     // Checkout
     'checkout.buyerInfo': 'Buyer Information',
     'checkout.name': 'Full Name',
@@ -58,6 +73,16 @@ const messages: Record<Locale, Record<string, string>> = {
     'checkout.addressPlaceholder': 'House No, Street, Sangkat, Khan',
     'checkout.provincePlaceholder': 'Select province',
     'checkout.notePlaceholder': 'Any delivery notes for the seller',
+    // Themes
+    'themes.title': 'Download Themes',
+    'themes.description': 'Browse and download ready-to-use UI themes and widgets.',
+    'themes.all': 'All',
+    'themes.downloading': 'Downloading... ',
+    'themes.download': 'Download',
+    'themes.downloadSuccess': 'Downloaded {name} successfully!',
+    'themes.downloadFailed': 'Failed to download theme.',
+    'themes.noThemes': 'No Themes Found',
+    'themes.noThemesMessage': 'Try a different category or check back later.'
   },
   km: {
     'nav.home': 'ទំព័រដើម',
@@ -94,6 +119,21 @@ const messages: Record<Locale, Record<string, string>> = {
     'cart.checkout': 'បន្តទូទាត់',
     'cart.buyNow': 'ទិញឥឡូវនេះ',
     'cart.addedCount': '~ {count} ផលិតផល',
+    // OTP / Auth
+    'otp.payAndLogin': 'បង់ប្រាក់ • ចូលដោយលេខទូរស័ព្ទ',
+    'otp.enterCode': 'បញ្ចូលលេខកូដ ៦ ខ្ទង់ ដែលបានផ្ញើទៅទូរស័ព្ទរបស់អ្នក',
+    'otp.codePlaceholder': '123456',
+    'otp.verify': 'ផ្ទៀងផ្ទាត់កូដ',
+    'otp.verifying': 'កំពុងផ្ទៀងផ្ទាត់...',
+    'otp.resend': 'ផ្ញើម្ដងទៀត',
+    'otp.sending': 'កំពុងផ្ញើ...',
+    'otp.sent': 'បានផ្ញើ OTP!',
+    'otp.verified': 'បានផ្ទៀងផ្ទាត់លេខទូរស័ព្ទ និងចូលស្វ័យប្រវត្តិ!',
+    'otp.verifyFailed': 'ផ្ទៀងផ្ទាត់បរាជ័យ។ សូមពិនិត្យកូដម្តងទៀត។',
+    'otp.sendFailed': 'ផ្ញើ OTP មិនបានសម្រេច។ សូមសាកល្បងម្ដងទៀត។',
+    'otp.noSession': 'រកមិនឃើញសម័យ OTP។ សូមផ្ញើកូដម្ដងទៀត។',
+    'otp.phoneRequired': 'សូមបញ្ចូលលេខទូរស័ព្ទជាមុនសិន។',
+    'otp.firebaseNotReady': 'Firebase មិនទាន់ផ្ទុក xong ទេ។ សូមរង់ចាំហើយព្យាយាមម្ដងទៀត។',
     // Checkout
     'checkout.buyerInfo': 'ព័ត៌មានអ្នកទិញ',
     'checkout.name': 'ឈ្មោះពេញ',
@@ -114,6 +154,16 @@ const messages: Record<Locale, Record<string, string>> = {
     'checkout.addressPlaceholder': 'ផ្ទះ លេខ ផ្លូវ សង្កាត់ ខណ្ឌ',
     'checkout.provincePlaceholder': 'ជ្រើសរើសខេត្ត/ក្រុង',
     'checkout.notePlaceholder': 'កំណត់ចំណាំការដឹកជញ្ជូនទៅអ្នកលក់',
+    // Themes
+    'themes.title': 'ទាញយកស្បែក UI',
+    'themes.description': 'រកមើល និងទាញយកស្បែក UI និងវិដជិតស្រេចប្រើ។',
+    'themes.all': 'ទាំងអស់',
+    'themes.downloading': 'កំពុងទាញយក...',
+    'themes.download': 'ទាញយក',
+    'themes.downloadSuccess': 'ទាញយក {name} បានជោគជ័យ!',
+    'themes.downloadFailed': 'ទាញយកស្បែកបរាជ័យ។',
+    'themes.noThemes': 'មិនមានស្បែក',
+    'themes.noThemesMessage': 'សូមសាកល្បងប្រភេទផ្សេង ឬត្រឡប់មកពេលក្រោយ។'
   }
 }
 
@@ -131,5 +181,8 @@ export function useI18n() {
   const isEn = computed(() => locale.value === 'en')
   const isKm = computed(() => locale.value === 'km')
   const setLocale = (l: Locale) => (locale.value = l)
-  return { locale, t, isEn, isKm, setLocale }
+  const toggleLanguage = () => {
+    locale.value = locale.value === 'en' ? 'km' : 'en'
+  }
+  return { locale, t, isEn, isKm, setLocale, toggleLanguage }
 }
