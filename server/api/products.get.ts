@@ -1,4 +1,5 @@
 import { defineEventHandler, getQuery } from 'h3'
+import { useRuntimeConfig } from '#imports'
 
 interface Product {
   id: number
@@ -41,7 +42,6 @@ const MOCK_PRODUCTS: Product[] = [
       'រចនាសមស្រប',
     ],
     options: ['Standard', 'Limited Edition'],
-    optionsKm: ['ស្តង់ដារ', 'កំណែពិសេស'],
   },
   {
     id: 2,
@@ -62,24 +62,62 @@ const MOCK_PRODUCTS: Product[] = [
   },
 ]
 
-export default defineEventHandler((event) => {
-  const { search = '', limit } = getQuery(event) as { search?: string; limit?: string }
+export default defineEventHandler(async (event) => {
+  const { search = '', limit, offset, skip } = getQuery(event) as { search?: string; limit?: string; offset?: string; skip?: string }
   const q = (search || '').toString().trim().toLowerCase()
+  const config = useRuntimeConfig()
+  const base = (config.public as any)?.apiBase as string | undefined
 
+  // Try proxy to backend if configured
+  if (base) {
+    try {
+      const url = new URL('/products', base.replace(/\/$/, ''))
+      if (limit) url.searchParams.set('limit', String(limit))
+      if (offset) url.searchParams.set('offset', String(offset))
+      else if (skip) url.searchParams.set('offset', String(skip))
+      // Backend supports skip/limit; no search param guaranteed
+      const res = await $fetch<any>(url.toString(), { method: 'GET' })
+      const items = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : []
+      const mapped: Product[] = items.map((it: any) => ({
+        id: it.id,
+        name: it.name,
+        nameKm: it.name_km,
+        type: it.type,
+        price: Number(it.price),
+        // include discount price if provided
+        // @ts-ignore - extend shape at runtime; front type includes optional
+        discount_price: typeof it.discount_price === 'number' ? it.discount_price : undefined,
+        images: it.images || [],
+        colors: it.colors || [],
+        description: it.description || '',
+        descriptionKm: it.description_km,
+        features: it.features || [],
+        featuresKm: it.features_km || [],
+        options: it.options || [],
+        optionsKm: it.options_km || [],
+      }))
+      // Optional search filtering client-side
+      const filtered = q
+        ? mapped.filter((p) => [p.name, p.type, p.description].some((v) => v.toLowerCase().includes(q)))
+        : mapped
+      return { items: filtered }
+    } catch (e) {
+      // fall back to mock
+    }
+  }
+
+  // Fallback to mock data
   let result = MOCK_PRODUCTS
-
   if (q) {
     result = result.filter((p) =>
       [p.name, p.type, p.description].some((v) => v.toLowerCase().includes(q))
     )
   }
-
   if (limit) {
     const n = Number(limit)
     if (!Number.isNaN(n)) {
       result = result.slice(0, n)
     }
   }
-
   return { items: result }
 })

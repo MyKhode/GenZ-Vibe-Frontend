@@ -69,9 +69,9 @@ const props = defineProps<{
 const index = ref(0)
 let timer: number | undefined
 const interval = () => props.autoplayMs ?? 4000
-const getDotColor = (i: number) => {
+const getDotColor = (i: number): string => {
   if (!props.colors || props.colors.length === 0) return 'gray'
-  return props.colors[i % props.colors.length]
+  return props.colors[i % props.colors.length] || 'gray'
 }
 
 const next = () => {

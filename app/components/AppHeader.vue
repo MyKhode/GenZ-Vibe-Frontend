@@ -65,12 +65,23 @@
         <!-- More Menu -->
         <div class="relative flex items-center gap-2 shrink-0" ref="moreRef">
           <button 
-            class="p-2 hover:bg-secondary rounded-lg transition-colors inline-flex items-center gap-2 text-foreground border border-border"
+            class="px-3 py-2 hover:bg-secondary rounded-lg transition-colors inline-flex items-center gap-2 text-foreground border border-border"
             @click="toggleMore"
             :title="t('header.more')"
             type="button"
           >
-            <PanelTopOpen class="w-5 h-5 text-muted-foreground" />
+            <span class="relative inline-block w-5 h-5">
+              <PanelTopOpen 
+                class="absolute inset-0 w-5 h-5 text-muted-foreground transition-opacity duration-100"
+                :class="showMore ? 'opacity-100' : 'opacity-0'"
+                aria-hidden="true"
+              />
+              <PanelTopClose 
+                class="absolute inset-0 w-5 h-5 text-muted-foreground transition-opacity duration-100"
+                :class="showMore ? 'opacity-0' : 'opacity-100'"
+                aria-hidden="true"
+              />
+            </span>
           </button>
 
           <Transition name="fade-scale">
@@ -78,18 +89,18 @@
               v-if="showMore"
               class="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden"
             >
-              <div class="px-3 py-2 text-xs uppercase text-muted-foreground">{{ t('menu.language') }}</div>
+              <div class="px-3 py-2 text-xs uppercase text-muted-foreground">language</div>
               <div class="px-2 pb-2 flex items-center gap-2">
                 <button 
                   class="flex-1 px-3 py-1.5 rounded-md border text-sm"
                   :class="locale === 'en' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border'"
                   @click="setLocale('en')"
-                >{{ t('menu.eng') }}</button>
+                >ENG</button>
                 <button 
                   class="flex-1 px-3 py-1.5 rounded-md border text-sm"
                   :class="locale === 'km' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border'"
                   @click="setLocale('km')"
-                >{{ t('menu.kh') }}</button>
+                >ខ្មែរ</button>
               </div>
               <div class="h-px bg-border" />
               <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm" @click="openFilters">{{ t('menu.filter') }}</button>
@@ -104,6 +115,7 @@
               </div>
               <div v-else class="p-2">
                 <div class="px-3 py-2 text-xs uppercase text-muted-foreground">Account</div>
+                <NuxtLink v-if="isAdmin" class="block px-4 py-2 hover:bg-secondary text-sm" to="/admin" @click="showMore=false">Admin</NuxtLink>
                 <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm" @click="openAccount">Manage Account</button>
                 <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm text-red-500" @click="logout">Logout</button>
               </div>
@@ -121,7 +133,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Headphones, Search, PanelTopOpen } from 'lucide-vue-next'
+import { Headphones, Search, PanelTopOpen, PanelTopClose } from 'lucide-vue-next'
 import type { Product } from '~/types/product'
 import { fetchProducts } from '~/services/products'
 import { useUiState } from '~/composables/useUiState'
@@ -145,6 +157,7 @@ const highlightIndex = ref(-1)
 const showMore = ref(false)
 const moreRef = ref<HTMLElement | null>(null)
 const isLoggedIn = computed(() => !!auth.token.value)
+const isAdmin = computed(() => Boolean((auth.profile.value as any)?.is_admin))
 const loginPhone = ref('')
 const showOtp = ref(false)
 const showAccount = ref(false)
@@ -219,6 +232,16 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   loadAll()
   auth.loadFromStorage()
+  // Refresh profile to fetch admin flag
+  ;(async () => {
+    try {
+      const res = await api.get('/user/me')
+      if (res.ok) {
+        const me = await res.json()
+        auth.setProfile(me)
+      }
+    } catch {}
+  })()
 })
 
 onBeforeUnmount(() => {
@@ -283,4 +306,7 @@ const logout = () => {
 
 .fade-y-enter-active, .fade-y-leave-active { transition: all .12s ease-out; }
 .fade-y-enter-from, .fade-y-leave-to { opacity: 0; transform: translateY(6px); }
+
+.fade-icon-enter-active, .fade-icon-leave-active { transition: opacity .1s ease; }
+.fade-icon-enter-from, .fade-icon-leave-to { opacity: 0; }
 </style>

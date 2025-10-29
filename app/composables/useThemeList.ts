@@ -1,54 +1,17 @@
+import { ref } from 'vue'
+import { useApi } from '~/composables/useApi'
+import { fetchThemes, type ThemeItem } from '~/services/themes'
+
 export const useThemeList = () => {
-  const themes = [
-    {
-      id: 'clock-fixed',
-      title: 'Fixed Clock Widget',
-      description: 'Beautiful analog clock with fixed positioning',
-      thumbnail: '/theme/clock_preview.png',
-      file: '/theme/theme_clock_fixed.html',
-      category: 'Widget'
-    },
-    {
-      id: 'digital-clock',
-      title: 'Digital Clock',
-      description: 'Modern digital clock display',
-      thumbnail: '/theme/digital_preview.png',
-      file: '/theme/theme_digital_clock.html',
-      category: 'Widget'
-    },
-    {
-      id: 'weather-widget',
-      title: 'Weather Widget',
-      description: 'Real-time weather information display',
-      thumbnail: '/theme/weather_preview.png',
-      file: '/theme/theme_weather.html',
-      category: 'Widget'
-    },
-    {
-      id: 'calendar',
-      title: 'Calendar Widget',
-      description: 'Minimal calendar with events',
-      thumbnail: '/theme/calendar_preview.png',
-      file: '/theme/theme_calendar.html',
-      category: 'Productivity'
-    },
-    {
-      id: 'music-player',
-      title: 'Music Player UI',
-      description: 'Elegant music player interface',
-      thumbnail: '/theme/music_preview.png',
-      file: '/theme/theme_music.html',
-      category: 'Media'
-    },
-    {
-      id: 'todo-list',
-      title: 'Todo List',
-      description: 'Simple and effective task manager',
-      thumbnail: '/theme/todo_preview.png',
-      file: '/theme/theme_todo.html',
-      category: 'Productivity'
-    }
-  ]
+  const api = useApi()
+  const themes = ref<ThemeItem[]>([])
+  const categories = ref<string[]>([])
+
+  const loadThemes = async () => {
+    const items = await fetchThemes({ limit: 100 })
+    themes.value = items
+    categories.value = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[]
+  }
 
   const downloadTheme = async (themeFile: string, themeName: string) => {
     try {
@@ -73,15 +36,26 @@ export const useThemeList = () => {
   }
 
   const getThemesByCategory = (category?: string) => {
-    if (!category) return themes
-    return themes.filter(t => t.category === category)
+    const list = themes.value
+    if (!category) return list
+    return list.filter(t => t.category === category)
   }
 
-  const categories = [...new Set(themes.map(t => t.category))]
+  const getThemeById = async (id: string) => {
+    try {
+      const res = await fetch(api.url(`/themes/${encodeURIComponent(id)}`))
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      return null
+    }
+  }
 
   return {
     themes,
     categories,
+    loadThemes,
+    getThemeById,
     downloadTheme,
     getThemesByCategory
   }

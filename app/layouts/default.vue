@@ -13,6 +13,7 @@
       :count="cartCount"
       @close="showAddedModal = false"
     />
+    <NotifyToasts />
   </div>
 </template>
 
@@ -21,6 +22,7 @@ import AppHeader from '~/components/AppHeader.vue'
 import NavMobile from '~/components/NavMobile.vue'
 import NavDesktop from '~/components/NavDesktop.vue'
 import AddedToCartModal from '~/components/AddedToCartModal.vue'
+import NotifyToasts from '~/components/NotifyToasts.vue'
 import { computed, onMounted, watch, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCart } from '~/composables/useCart'

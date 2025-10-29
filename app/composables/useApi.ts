@@ -10,6 +10,7 @@ export const useApi = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         Authorization: token.value ? `Bearer ${token.value}` : '',
         ...(opts.headers || {}),
       },
@@ -23,6 +24,7 @@ export const useApi = () => {
     const res = await fetch(url(path), {
       method: 'GET',
       headers: {
+        'Accept': 'application/json',
         Authorization: token.value ? `Bearer ${token.value}` : '',
         ...(opts.headers || {}),
       },

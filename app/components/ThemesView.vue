@@ -37,12 +37,18 @@
         <div class="aspect-video bg-secondary relative overflow-hidden">
           <img 
             v-if="theme.thumbnail" 
-            :src="theme.thumbnail" 
+            :src="assetUrl(theme.thumbnail)" 
             :alt="theme.title"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div v-else class="w-full h-full flex items-center justify-center">
             <Palette class="w-16 h-16 text-muted-foreground" />
+          </div>
+          <!-- Title overlay (top-left inside image) -->
+          <div class="absolute top-3 left-3 max-w-[75%]">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-black/60 text-white backdrop-blur-sm truncate inline-block">
+              {{ theme.title }}
+            </span>
           </div>
           <div class="absolute top-3 right-3">
             <span class="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
@@ -53,9 +59,10 @@
 
         <!-- Content -->
         <div class="p-6">
-          <h3 class="font-bold text-foreground text-xl mb-2">{{ theme.title }}</h3>
-          <p class="text-muted-foreground text-sm mb-4">{{ theme.description }}</p>
-
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <p class="text-muted-foreground text-sm">{{ theme.description }}</p>
+            <span class="text-xs text-muted-foreground shrink-0">Downloads: {{ theme.downloads || 0 }}</span>
+          </div>
           <!-- Download Button -->
           <button 
             class="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -79,26 +86,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Download, Palette } from 'lucide-vue-next'
-import { useThemeList } from '~/composables/useThemeList'
+import { fetchThemes } from '~/services/themes'
+import { useRuntimeConfig } from '#app'
+import type { ThemeItem } from '~/services/themes'
 import { useI18n } from '~/composables/useI18n'
+import { useApi } from '~/composables/useApi'
 
 const { t } = useI18n()
-const { themes, categories, downloadTheme } = useThemeList()
+const config = useRuntimeConfig()
+const apiBase = (config.public as any)?.apiBase as string | undefined
 
-const selectedCategory = ref('')
+const assetUrl = (p?: string) => {
+  if (!p) return ''
+  if (/^https?:\/\//i.test(p)) return p
+  const path = p.startsWith('/') ? p.slice(1) : p
+  if (apiBase) return apiBase.replace(/\/$/, '') + '/' + path
+  return '/' + path
+}
+const themes = ref<ThemeItem[]>([])
+const categories = ref<string[]>([])
 const downloading = ref<string | null>(null)
+const api = useApi()
 
-const filteredThemes = computed(() => {
-  if (!selectedCategory.value) return themes
-  return themes.filter(th => th.category === selectedCategory.value)
+onMounted(async () => {
+  const items = await fetchThemes({ limit: 100 })
+  themes.value = items
+  categories.value = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[]
 })
 
-const handleDownload = async (theme: any) => {
+const selectedCategory = ref('')
+const downloadTheme = async (themeFile: string, themeName: string) => {
+  try {
+    const response = await fetch(assetUrl(themeFile))
+    if (!response.ok) throw new Error('Download failed')
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${themeName}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    return true
+  } catch (e) {
+    console.error(e)
+    return false
+  }
+}
+
+const filteredThemes = computed<ThemeItem[]>(() => {
+  if (!selectedCategory.value) return themes.value
+  return themes.value.filter((th: ThemeItem) => th.category === selectedCategory.value)
+})
+
+const handleDownload = async (theme: ThemeItem) => {
   downloading.value = theme.id
   try {
-    const success = await downloadTheme(theme.file, theme.id)
+    // First, register the download with backend and get updated info
+    let filePath = theme.file
+    try {
+      const res = await api.post(`/themes/${encodeURIComponent(theme.id)}/download`, {})
+      if (res.ok) {
+        const data = await res.json().catch(() => null)
+        if (data) {
+          ;(theme as any).downloads = data.downloads ?? (Number(theme.downloads || 0) + 1)
+          filePath = data.file || filePath
+        }
+      }
+    } catch {}
+
+    const success = await downloadTheme(filePath, theme.id)
     if (success) {
       alert(t('themes.downloadSuccess').replace('{name}', theme.title))
     } else {

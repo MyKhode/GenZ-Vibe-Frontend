@@ -33,5 +33,11 @@ export default defineNuxtConfig({
     }
   },
 
+  // Ensure /admin can be refreshed without 404 by serving SPA shell
+  routeRules: {
+    '/admin/**': { ssr: false },
+    '/admin': { ssr: false }
+  },
+
   compatibilityDate: '2025-01-20'
 })

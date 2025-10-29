@@ -6,8 +6,8 @@ export const useCart = () => {
   const items = useState<Product[]>('cart:items', () => [])
   const cookie = useCookie<Product[]>('cart_items', { sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 })
 
-  // Initialize from cookie once
-  if (process.client && cookie.value && items.value.length === 0) {
+  // Initialize from cookie once (SSR + client) to avoid hydration shift
+  if (cookie.value && items.value.length === 0) {
     items.value = cookie.value
   }
 

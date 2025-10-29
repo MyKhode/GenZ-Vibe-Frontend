@@ -14,8 +14,26 @@
       @close="ui.showFilters.value = false"
       @apply="handleApplyFilters"
     />
+
+    <!-- Pagination: Previous | Page X | Next -->
+    <div class="mt-8 flex items-center justify-center gap-4">
+      <button
+        class="px-3 py-1.5 rounded-lg border border-border disabled:opacity-50"
+        :disabled="page === 1"
+        @click="goPage(page - 1)"
+      >
+        Previous
+      </button>
+      <span class="text-sm text-muted-foreground">Page {{ page }}</span>
+      <button
+        class="px-3 py-1.5 rounded-lg border border-border disabled:opacity-50"
+        :disabled="!hasMore"
+        @click="goPage(page + 1)"
+      >
+        Next
+      </button>
+    </div>
   </div>
-  
 </template>
 
 <script setup lang="ts">
@@ -43,6 +61,9 @@ const ui = useUiState()
 
 const products = ref<Product[]>([])
 const isLoading = ref(true)
+const page = ref(1)
+const pageSize = ref(12)
+const hasMore = ref(false)
 
 const filters = ref({
   types: [] as string[],
@@ -68,7 +89,6 @@ const filteredProducts = computed(() => {
       }
     })
   }
-  // rating filter removed from product type
   return result
 })
 
@@ -76,7 +96,10 @@ const load = async () => {
   isLoading.value = true
   try {
     const q = (route.query.q as string) || ''
-    products.value = await fetchProducts({ search: q })
+    const offset = (page.value - 1) * pageSize.value
+    const items = await fetchProducts({ search: q, limit: pageSize.value, offset })
+    products.value = items
+    hasMore.value = items.length === pageSize.value
   } finally {
     isLoading.value = false
   }
@@ -90,10 +113,20 @@ onMounted(async () => {
     router.replace({ path: route.path, query: { ...rest } })
   }
 })
-watch(() => route.query.q, load)
+
+watch(() => route.query.q, async () => {
+  page.value = 1
+  await load()
+})
+
+const goPage = async (p: number) => {
+  if (p < 1) return
+  page.value = p
+  await load()
+}
 
 const goToProduct = (product: Product) => {
-  router.push(`/products/${toSlug(product.name)}`)
+  router.push(`/products/${product.id}`)
 }
 
 const handleApplyFilters = (newFilters: typeof filters.value) => {

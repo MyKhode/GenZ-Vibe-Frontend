@@ -5,19 +5,20 @@
   >
     <!-- Product Image -->
     <div class="relative mb-0.5 md:mb-4 aspect-square flex items-center justify-center">
-      <div class="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg">
+      <div 
+        class="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
+      >
         <div class="w-32 h-32 bg-linear-to-br from-muted/50 to-transparent rounded-full absolute blur-2xl"></div>
         <img :src="currentImage" :alt="displayName" class="absolute inset-0 w-full h-full object-cover z-10" />
       </div>
       
-      <!-- Color/Image Dots: count = images.length; color cycles through product.colors -->
-      <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20">
+      <!-- Image dots reflect all available images -->
+      <div v-if="images.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20">
         <button 
-          v-for="(src, i) in product.images" 
-          :key="src + 'dot' + i"
+          v-for="(src, i) in images" 
+          :key="(src || i) + 'dot'"
           :class="[
-            'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full border-2 border-background transition-transform hover:scale-110',
-            getColorClass(dotColor(i)),
+            'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full border-2 border-background bg-white/70 transition-transform hover:scale-110',
             i === index && 'ring-2 ring-primary ring-offset-2 ring-offset-secondary'
           ]"
           @click.stop="setIndex(i)"
@@ -37,7 +38,13 @@
           {{ displayName }}
         </h3>
         <span class="text-lg font-bold text-foreground shrink-0 whitespace-nowrap">
-          ${{ product.price.toFixed(2) }}
+          <template v-if="product.discount_price && product.discount_price < product.price">
+            <span class="text-red-500">${{ Number(product.discount_price).toFixed(2) }}</span>
+            <span class="text-muted-foreground line-through ml-2 text-sm">${{ product.price.toFixed(2) }}</span>
+          </template>
+          <template v-else>
+            ${{ product.price.toFixed(2) }}
+          </template>
         </span>
       </div>
 
@@ -70,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed } from 'vue'
 import type { Product } from '~/types/product'
 import { ShoppingCart } from 'lucide-vue-next'
 import { useCart } from '~/composables/useCart'
@@ -96,73 +103,75 @@ const getColorClass = (color: string) => {
 
 // Rotate images on hover with fast first-time preview
 const index = ref(0)
-let rotateTimer: number | undefined
-let previewTimer: number | undefined
-const PREVIEW_INTERVAL = 80   // much faster first-hover preview
-const QUICK_INTERVAL = 1200   // a little slower for subsequent hovers
-const firstHoverDone = ref(false)
 
 const setIndex = (i: number) => {
-  index.value = i % (props.product.images?.length || 1)
+  index.value = i % Math.max(1, images.value.length)
 }
 
-const startQuickRotate = () => {
-  if (rotateTimer) clearInterval(rotateTimer)
-  rotateTimer = window.setInterval(() => {
-    setIndex(index.value + 1)
-  }, QUICK_INTERVAL)
+// No auto-swap on hover; dots are manual selector only
+
+// Build absolute image URL: prefix relative paths with public api base
+const runtimeConfig = useRuntimeConfig()
+const apiBase = (runtimeConfig.public?.apiBase || '') as string
+const toAbsolute = (src: string): string => {
+  if (!src) return ''
+  if (/^(https?:)?\/\//.test(src) || src.startsWith('data:')) return src
+  const base = apiBase.replace(/\/$/, '')
+  const path = src.replace(/^\//, '')
+  return base ? `${base}/${path}` : `/${path}`
 }
-
-const startRotate = () => {
-  stopRotate()
-  const len = props.product.images?.length || 0
-  if (len <= 1) return
-
-  if (!firstHoverDone.value) {
-    // Rapid preview through all images once, then switch to quick rotate
-    let stepsRemaining = Math.max(len - 1, 1)
-    previewTimer = window.setInterval(() => {
-      setIndex(index.value + 1)
-      stepsRemaining--
-      if (stepsRemaining <= 0) {
-        if (previewTimer) clearInterval(previewTimer)
-        previewTimer = undefined
-        firstHoverDone.value = true
-        startQuickRotate()
-      }
-    }, PREVIEW_INTERVAL)
-  } else {
-    startQuickRotate()
-  }
-}
-
-const stopRotate = () => {
-  if (previewTimer) {
-    clearInterval(previewTimer)
-    previewTimer = undefined
-  }
-  if (rotateTimer) {
-    clearInterval(rotateTimer)
-    rotateTimer = undefined
-  }
-  index.value = 0
-}
-
-onBeforeUnmount(stopRotate)
-
-const currentImage = computed<string>(() => props.product.images?.[index.value] || '')
-const dotColor = (i: number): string => {
-  const colors: string[] = props.product.colors
-  if (!colors || colors.length === 0) return 'gray'
-  return colors[i % colors.length] as string
-}
+// Derive images from options.addons; fallback to product.images
+type AddonItem = { id?: number; name?: string; price?: number; image?: string | null }
+const addonsObj = computed<Record<string, AddonItem[]>>(() => {
+  const opts = (props.product as any)?.options
+  const obj = typeof opts === 'string' ? safeParse(opts) : (opts || {})
+  return (obj?.addons || {}) as Record<string, AddonItem[]>
+})
+const addonGroups = computed<[string, AddonItem[]][]>(() => Object.entries(addonsObj.value))
+const colorItems = computed<AddonItem[]>(() => {
+  const entry = Object.entries(addonsObj.value).find(([k]) => /color/i.test(k))
+  return Array.isArray(entry?.[1]) ? (entry![1] as AddonItem[]) : []
+})
+const colorGroupKey = computed<string>(() => {
+  const entry = Object.entries(addonsObj.value).find(([k]) => /color/i.test(k))
+  return entry ? entry[0] : ''
+})
+const images = computed<string[]>(() => {
+  const addonImgs = Object.values(addonsObj.value)
+    .flatMap(arr => (Array.isArray(arr) ? arr : []) as AddonItem[])
+    .map(it => it.image)
+    .filter((s): s is string => !!s)
+  const legacy = (props.product.images || []) as string[]
+  return addonImgs.length ? addonImgs : legacy
+})
+const currentImage = computed<string>(() => toAbsolute(images.value[index.value] || ''))
 
 // Cart interactions
 const cart = useCart()
 const qtyInCart = computed(() => cart.countOf(props.product.id))
-const addToCart = () => cart.add(props.product)
-const increment = () => cart.add(props.product)
+function buildSelectedMeta() {
+  // Try to map current image index to a color option index if possible
+  const img = images.value[index.value]
+  let selectedOptions: Record<string, number> | undefined
+  if (colorItems.value.length && colorGroupKey.value) {
+    const idx = colorItems.value.findIndex(it => it.image === img)
+    if (idx >= 0) selectedOptions = { [colorGroupKey.value]: idx }
+  }
+  return { selectedImage: img, selectedOptions }
+}
+const addToCart = () => {
+  const meta = buildSelectedMeta()
+  cart.add({ ...(props.product as any), ...meta })
+}
+const increment = () => {
+  const meta = buildSelectedMeta()
+  cart.add({ ...(props.product as any), ...meta })
+}
 const decrement = () => cart.removeOne(props.product.id)
 const { locale, t } = useI18n()
 const displayName = computed(() => locale.value === 'km' ? (props.product as any).nameKm || props.product.name : props.product.name)
+
+function safeParse(s: string) {
+  try { return JSON.parse(s) } catch { return {} }
+}
 </script>

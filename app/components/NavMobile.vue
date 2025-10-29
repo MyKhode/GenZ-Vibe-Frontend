@@ -34,7 +34,7 @@
         :aria-label="t('nav.themes')"
       >
         <Palette class="w-5 h-5" />
-        <span class="text-xs font-medium">{{ t('nav.themes') }}</span>
+        <span class="text-xs font-medium">{{ t('Themes') }}</span>
       </NuxtLink>
 
       <NuxtLink 
@@ -43,7 +43,7 @@
         :class="isActive('/orders') ? 'text-primary' : 'text-muted-foreground'"
         :aria-label="t('nav.orders')"
       >
-        <FileText class="w-5 h-5" />
+        <Box class="w-5 h-5" />
         <span class="text-xs font-medium">{{ t('nav.orders') }}</span>
       </NuxtLink>
     </div>
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, ShoppingCart, FileText, Palette } from 'lucide-vue-next'
+import { Home, ShoppingCart, FileText, Palette, Box } from 'lucide-vue-next'
 import { useCart } from '~/composables/useCart'
 import { useI18n } from '~/composables/useI18n'
 

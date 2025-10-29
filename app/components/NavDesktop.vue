@@ -44,7 +44,7 @@
         :aria-label="t('nav.orders')"
         :title="t('nav.orders')"
       >
-        <FileText class="w-5 h-5" />
+        <Box class="w-5 h-5" />
       </NuxtLink>
     </div>
   </aside>
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, ShoppingCart, FileText, Palette } from 'lucide-vue-next'
+import { Home, ShoppingCart, FileText, Palette, Box } from 'lucide-vue-next'
 import { useCart } from '~/composables/useCart'
 import { useI18n } from '~/composables/useI18n'
 

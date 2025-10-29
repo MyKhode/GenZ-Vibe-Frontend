@@ -10,7 +10,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left: Basic info and image (desktop); full on mobile -->
       <section>
-        <!-- Static image area tied to selected option (no auto-slide) -->
+        <!-- Static image area tied to selected option -->
         <div class="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-secondary mb-4">
           <img 
             v-if="currentImage"
@@ -19,6 +19,21 @@
             class="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
           />
+
+          <!-- Image dots for all available addon images -->
+          <div v-if="images.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+            <button
+              v-for="(src, i) in images"
+              :key="(src || i) + 'dot'"
+              type="button"
+              :class="[
+                'w-4 h-4 rounded-full border-2 border-background bg-white/70 transition-transform hover:scale-110',
+                i === selectedImageIndex && 'ring-2 ring-primary ring-offset-2 ring-offset-secondary'
+              ]"
+              :aria-label="`Image ${i+1}`"
+              @click.stop="selectedImageIndex = i"
+            />
+          </div>
         </div>
       </section>
 
@@ -29,7 +44,15 @@
           {{ product.name }}
         </h1>
 
-        <div class="text-2xl font-bold text-foreground mb-4">${{ product.price.toFixed(2) }}</div>
+        <div class="text-2xl font-bold text-foreground mb-4">
+          <template v-if="product.discount_price && product.discount_price < product.price">
+            <span class="text-red-500">${{ Number(product.discount_price).toFixed(2) }}</span>
+            <span class="text-muted-foreground line-through ml-3 text-xl">${{ product.price.toFixed(2) }}</span>
+          </template>
+          <template v-else>
+            ${{ product.price.toFixed(2) }}
+          </template>
+        </div>
 
         <div class="flex gap-3 mb-6 items-center">
           <div class="flex-1">
@@ -66,23 +89,25 @@
         <h2 class="sr-only">Product details</h2>
         <p class="text-muted-foreground leading-relaxed mb-4">{{ pDesc }}</p>
 
-        <div class="mb-6" v-if="(product.options?.length || 0) > 0">
-          <p class="text-xs text-muted-foreground mb-2">{{ t('product.option') }}</p>
-          <!-- Responsive chip selection instead of dropdown -->
-          <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="t('product.option')">
+        <!-- Render selection controls for all addon groups -->
+        <div v-for="group in addonGroups" :key="group.key" class="mb-6">
+          <template v-if="group.items && group.items.length">
+            <p class="text-xs text-muted-foreground mb-2">{{ group.label || group.key }}</p>
+            <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="group.label || group.key">
             <button
-              v-for="op in pOptions"
-              :key="op"
+              v-for="(it, i) in group.items"
+              :key="it.id ?? it.name ?? i"
               type="button"
               class="px-3 py-2 rounded-lg border text-sm transition-colors"
-              :class="selectedOption === op ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-foreground border-border hover:bg-secondary/80'"
-              :aria-checked="selectedOption === op"
+              :class="(selectedIndexByGroup[group.key] ?? 0) === i ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-foreground border-border hover:bg-secondary/80'"
+              :aria-checked="(selectedIndexByGroup[group.key] ?? 0) === i"
               role="radio"
-              @click="selectedOption = op"
+              @click="selectGroupItem(group.key, i, it.image as any)"
             >
-              {{ op }}
+              {{ it.name }}
             </button>
-          </div>
+            </div>
+          </template>
         </div>
 
         <div class="mb-6" v-if="product.features?.length">
@@ -104,11 +129,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ShoppingCart } from 'lucide-vue-next'
 import type { Product } from '~/types/product'
-import { fetchProducts } from '~/services/products'
+import { fetchProducts, fetchProductById } from '~/services/products'
 import { toSlug } from '~/utils/slug'
 import { useCart } from '~/composables/useCart'
 import { useI18n } from '~/composables/useI18n'
@@ -120,67 +145,127 @@ const { add, clear, removeOne, countOf } = useCart()
 const slug = computed(() => route.params.slug as string)
 
 const { data: productData } = await useAsyncData(`product-${slug.value}` , async () => {
+  const s = slug.value
+  const idNum = Number(s)
+  if (Number.isFinite(idNum)) {
+    const byId = await fetchProductById(idNum)
+    if (byId) return byId
+  }
   const items = await fetchProducts()
-  return items.find((p) => toSlug(p.name) === slug.value) || null
+  return items.find((p) => toSlug(p.name) === s) || null
 })
 
 const product = computed<Product | null>(() => productData.value ?? null)
-const images = computed(() => (product.value?.images ?? []))
+// Parse options.addons into an array of groups
+type AddonItem = { id?: number; name?: string; price?: number; image?: string | null }
+type AddonGroup = { key: string; label?: string; items: AddonItem[] }
+const addonsObj = computed<Record<string, AddonItem[]>>(() => {
+  const opts = (product.value as any)?.options
+  const obj = typeof opts === 'string' ? safeParse(opts) : (opts || {})
+  return (obj?.addons || {}) as Record<string, AddonItem[]>
+})
+const addonGroups = computed<AddonGroup[]>(() => {
+  return Object.entries(addonsObj.value).map(([key, items]) => ({ key, label: key, items: Array.isArray(items) ? items : [] }))
+})
+const colorGroup = computed<AddonGroup | null>(() => addonGroups.value.find(g => /color/i.test(g.key)) || null)
+const colorItems = computed<AddonItem[]>(() => (colorGroup.value?.items || []))
+const colorGroupKey = computed<string>(() => colorGroup.value?.key || '')
+
+// Build flat images array from all addon items
+const images = computed<string[]>(() => addonGroups.value
+  .flatMap(g => (g.items || []).map(it => it.image).filter(Boolean) as string[])
+)
+const selectedImageIndex = ref(0)
+watch(images, (arr) => {
+  if (!arr || arr.length === 0) { selectedImageIndex.value = 0; return }
+  if (selectedImageIndex.value >= arr.length) selectedImageIndex.value = 0
+})
+function indexOfImage(src?: string | null): number {
+  if (!src) return -1
+  return images.value.findIndex(s => s === src)
+}
+function selectGroupItem(key: string, i: number, image?: string | null) {
+  selectedIndexByGroup.value[key] = i
+  const idx = indexOfImage(image)
+  if (idx >= 0) selectedImageIndex.value = idx
+}
 const { t, locale } = useI18n()
-const selectedOption = ref<string | undefined>(product.value?.options?.[0])
+const selectedIndexByGroup = ref<Record<string, number>>({})
 const pName = computed(() => product.value ? (locale.value === 'km' ? ((product.value as any).nameKm || product.value.name) : product.value.name) : '')
 const pDesc = computed(() => product.value ? (locale.value === 'km' ? ((product.value as any).descriptionKm || product.value.description) : product.value.description) : '')
-const pOptions = computed<string[]>(() => {
-  const p = product.value as any
-  if (!p) return []
-  if (locale.value === 'km') return p.optionsKm || p.options || []
-  return p.options || []
-})
+// Initialize selection per group when data arrives
+watch(addonGroups, (groups) => {
+  const next: Record<string, number> = { ...selectedIndexByGroup.value }
+  for (const g of groups) {
+    if (typeof next[g.key] !== 'number') next[g.key] = 0
+  }
+  selectedIndexByGroup.value = next
+}, { immediate: true, deep: true })
 
-const selectedIndex = computed(() => {
-  const list = pOptions.value
-  if (!list.length) return 0
-  const idx = list.indexOf(selectedOption.value || list[0])
-  return idx >= 0 ? idx : 0
+// Prefix product image with public api base when path is relative
+const runtimeConfig = useRuntimeConfig()
+const apiBase = (runtimeConfig.public?.apiBase || '') as string
+const toAbsolute = (src: string): string => {
+  if (!src) return ''
+  if (/^(https?:)?\/\//.test(src) || src.startsWith('data:')) return src
+  const base = apiBase.replace(/\/$/, '')
+  const path = src.replace(/^\//, '')
+  return base ? `${base}/${path}` : `/${path}`
+}
+const currentImage = computed(() => {
+  const src = images.value[selectedImageIndex.value]
+  return src ? toAbsolute(src) : ''
 })
-
-const currentImage = computed(() => images.value[selectedIndex.value] || images.value[0] || '')
 
 const qtyInCart = computed(() => (product.value ? countOf(product.value.id) : 0))
 
-const addToCart = (p: Product) => add(p)
+function buildSelectedProduct(p: Product): Product {
+  const selectedImage = images.value[selectedImageIndex.value]
+  const selectedOptions = { ...selectedIndexByGroup.value }
+  return { ...(p as any), selectedImage, selectedOptions }
+}
+const addToCart = (p: Product) => add(buildSelectedProduct(p))
 const buyNow = (p: Product) => {
   clear()
-  add(p, { notify: false })
+  add(buildSelectedProduct(p), { notify: false })
   router.push('/cart')
 }
 
 const increment = () => {
-  if (product.value) add(product.value)
+  if (product.value) add(buildSelectedProduct(product.value))
 }
 const decrement = () => {
   if (product.value) removeOne(product.value.id)
 }
 
-const getColorClass = (color: string) => {
+const getColorClass = (name: string) => {
   const colorMap: Record<string, string> = {
     white: 'bg-gray-100',
+    black: 'bg-gray-900',
     pink: 'bg-pink-400',
     yellow: 'bg-yellow-400',
-    blue: 'bg-blue-500'
+    blue: 'bg-blue-500',
+    red: 'bg-red-500',
+    green: 'bg-green-500',
+    gray: 'bg-gray-400',
+    grey: 'bg-gray-400'
   }
-  return colorMap[color] || 'bg-gray-400'
+  return colorMap[name] || 'bg-gray-400'
 }
 
 const jsonLd = computed(() => {
   if (!product.value) return '{}'
   const p = product.value
+  // Collect available images from all addon items for SEO
+  const imgs: string[] = addonGroups.value
+    .flatMap(g => (g.items || []).map(it => it.image).filter(Boolean) as string[])
+    .map((s: string) => toAbsolute(s))
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: p.name,
     description: p.description,
-    image: images.value,
+    image: imgs,
     brand: { '@type': 'Brand', name: 'Peak Audio' },
     offers: {
       '@type': 'Offer',
@@ -190,6 +275,10 @@ const jsonLd = computed(() => {
     }
   })
 })
+
+function safeParse(s: string) {
+  try { return JSON.parse(s) } catch { return {} }
+}
 
 useHead(() => {
   const title = product.value ? `${product.value.name} | Peak Premium Audio` : 'Product | Peak Premium Audio'

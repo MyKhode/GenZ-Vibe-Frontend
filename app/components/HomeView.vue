@@ -36,9 +36,9 @@
       <p class="text-muted-foreground mb-4">
         {{ t('promo.desc') }}
       </p>
-      <button class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-6 rounded-xl transition-colors text-sm uppercase tracking-wide">
+      <NuxtLink to="themes" class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-6 rounded-xl transition-colors text-sm uppercase tracking-wide">
         {{ t('promo.cta') }}
-      </button>
+      </NuxtLink>
     </div>
   </div>
 </template>
