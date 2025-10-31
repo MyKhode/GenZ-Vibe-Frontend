@@ -6,12 +6,11 @@
 import ContactView from '~/components/ContactView.vue'
 
 useHead({
-  title: 'Contact | Peak Premium Audio',
+  title: 'Contact | GenZ Vibe',
   meta: [
-    { name: 'description', content: 'Contact Peak Audio for support and inquiries.' },
+    { name: 'description', content: 'Contact GenZ Vibe for support and inquiries.' },
     { name: 'robots', content: 'index,follow' }
   ],
   link: [{ rel: 'canonical', href: 'https://example.com/contact' }]
 })
 </script>
-

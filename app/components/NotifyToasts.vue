@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed right-4 z-[90] space-y-2 w-[min(92vw,360px)] top-4 md:top-auto md:bottom-4">
+  <div class="fixed right-4 z-[1000] space-y-2 w-[min(92vw,360px)] top-4 md:top-auto md:bottom-4">
     <div 
       v-for="t in items" :key="t.id"
       class="border rounded-xl p-3 shadow-lg flex items-start gap-3"

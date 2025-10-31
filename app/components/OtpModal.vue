@@ -12,12 +12,20 @@
           <p class="text-sm text-muted-foreground mb-4">{{ t('otp.enterCode') }}</p>
 
           <div class="space-y-3">
-            <input 
-              v-model="code"
-              inputmode="numeric" 
-              maxlength="4"
-              class="w-full px-3 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest"
-              :placeholder="t('otp.codePlaceholder')" />
+            <div class="flex items-center justify-center gap-3">
+              <input
+                v-for="(d, idx) in digits"
+                :key="idx"
+                ref="digitRefs"
+                v-model="digits[idx]"
+                inputmode="numeric"
+                maxlength="1"
+                class="w-14 h-14 text-center text-2xl rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                @input="onDigitInput(idx)"
+                @keydown.backspace.prevent="onBackspace(idx)"
+                @paste.prevent="onPaste($event)"
+              />
+            </div>
 
             <div class="flex gap-2">
               <button class="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2.5 rounded-xl disabled:opacity-60" :disabled="verifying || code.replace(/\D/g, '').length < 4" @click="onVerify">
@@ -42,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted, computed } from 'vue'
 import { useI18n } from '~/composables/useI18n'
 import { useApi } from '~/composables/useApi'
 
@@ -52,7 +60,9 @@ const emit = defineEmits<{ close: []; verified: [token: string] }>()
 const { t } = useI18n()
 const api = useApi()
 
-const code = ref('')
+const digits = ref<string[]>(['', '', '', ''])
+const digitRefs = ref<HTMLInputElement[] | null>(null as any)
+const code = computed(() => digits.value.join(''))
 const sending = ref(false)
 const verifying = ref(false)
 const cooldownLeft = ref(0)
@@ -125,11 +135,42 @@ const onVerify = async () => {
   }
 }
 
+function focusIndex(i: number) {
+  const inputs = (digitRefs.value || []) as unknown as HTMLInputElement[]
+  const el = inputs[i]
+  if (el) el.focus()
+}
+
+const onDigitInput = (idx: number) => {
+  const v = digits.value[idx].replace(/\D/g, '')
+  digits.value[idx] = v.slice(-1)
+  if (digits.value[idx] && idx < digits.value.length - 1) focusIndex(idx + 1)
+}
+const onBackspace = (idx: number) => {
+  if (digits.value[idx]) {
+    digits.value[idx] = ''
+    return
+  }
+  if (idx > 0) {
+    focusIndex(idx - 1)
+    digits.value[idx - 1] = ''
+  }
+}
+const onPaste = (e: ClipboardEvent) => {
+  const text = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 4)
+  if (!text) return
+  for (let i = 0; i < 4; i++) {
+    digits.value[i] = text[i] || ''
+  }
+  if (text.length < 4) focusIndex(text.length)
+}
+
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
-    code.value = ''
+    digits.value = ['', '', '', '']
     error.value = ''
     onSend(false)
+    setTimeout(() => focusIndex(0), 0)
   } else {
     if (timer) clearInterval(timer)
     timer = null

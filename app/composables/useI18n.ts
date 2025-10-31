@@ -2,6 +2,22 @@ import { ref, computed, watch } from 'vue'
 
 export type Locale = 'en' | 'km'
 
+// Province names for KH (matching existing list, bilingual)
+const PROVINCES_EN = [
+  'Banteay Meanchey', 'Battambang', 'Kampong Cham', 'Kampong Chhnang',
+  'Kampong Speu', 'Kampong Thom', 'Kampot', 'Kandal', 'Kep', 'Koh Kong',
+  'Kratié', 'Mondulkiri', 'Oddar Meanchey', 'Pailin', 'Preah Sihanouk',
+  'Preah Vihear', 'Pursat', 'Prey Veng', 'Ratanakiri', 'Siem Reap',
+  'Stung Treng', 'Svay Rieng', 'Takeo', 'Tbong Khmum', 'Phnom Penh',
+]
+const PROVINCES_KM = [
+  'បន្ទាយមានជ័យ', 'បាត់ដំបង', 'កំពង់ចាម', 'កំពង់ឆ្នាំង',
+  'កំពង់ស្ពឺ', 'កំពង់ធំ', 'កំពត', 'កណ្ដាល', 'កែប', 'កោះកុង',
+  'ក្រចេះ', 'មណ្ឌលគិរី', 'ឧត្តរមានជ័យ', 'ប៉ៃលិន', 'ព្រះសីហនុ',
+  'ព្រះវិហារ', 'ពោធិ៍សាត់', 'ព្រៃវែង', 'រតនគិរី', 'សៀមរាប',
+  'ស្ទឹងត្រែង', 'ស្វាយរៀង', 'តាកែវ', 'ត្បូងឃ្មុំ', 'ភ្នំពេញ',
+]
+
 const messages: Record<Locale, Record<string, string>> = {
   en: {
     'nav.home': 'Home',
@@ -40,8 +56,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'cart.addedCount': '~ {count} products',
     // OTP / Auth
     'otp.payAndLogin': 'Pay • Login by Phone',
-    'otp.enterCode': 'Enter the 6-digit code sent to your phone',
-    'otp.codePlaceholder': '123456',
+    'otp.enterCode': 'Enter the 4-digit code sent to your phone',
+    'otp.codePlaceholder': '1234',
     'otp.verify': 'Verify Code',
     'otp.verifying': 'Verifying... ',
     'otp.resend': 'Resend',
@@ -53,6 +69,13 @@ const messages: Record<Locale, Record<string, string>> = {
     'otp.noSession': 'No OTP session found. Please resend the code.',
     'otp.phoneRequired': 'Please enter your phone number first.',
     'otp.firebaseNotReady': 'Firebase not loaded yet. Please wait and try again.',
+    // Auth
+    'auth.login': 'Login',
+    'auth.sendCode': 'Send Code',
+    'auth.manageAccount': 'Manage Account',
+    'auth.admin': 'Admin',
+    'auth.logout': 'Logout',
+    'auth.loggedOut': 'Logged out',
     // Checkout
     'checkout.buyerInfo': 'Buyer Information',
     'checkout.name': 'Full Name',
@@ -62,6 +85,7 @@ const messages: Record<Locale, Record<string, string>> = {
     'checkout.province': 'Province',
     'checkout.note': 'Note to Seller',
     'checkout.payment': 'Payment Method',
+    'checkout.paymentMethod': 'Payment Method',
     'checkout.bakongKhqr': 'Bakong KHQR',
     'checkout.khqrDesc': 'Pay securely by scanning the KHQR code.',
     'checkout.khqrNote': 'We will generate a KHQR for the total amount on confirm.',
@@ -73,6 +97,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'checkout.addressPlaceholder': 'House No, Street, Sangkat, Khan',
     'checkout.provincePlaceholder': 'Select province',
     'checkout.notePlaceholder': 'Any delivery notes for the seller',
+    // Orders
+    'orders.downloadInvoice': 'Download Invoice (JPG)',
     // Themes
     'themes.title': 'Download Themes',
     'themes.description': 'Browse and download ready-to-use UI themes and widgets.',
@@ -82,7 +108,19 @@ const messages: Record<Locale, Record<string, string>> = {
     'themes.downloadSuccess': 'Downloaded {name} successfully!',
     'themes.downloadFailed': 'Failed to download theme.',
     'themes.noThemes': 'No Themes Found',
-    'themes.noThemesMessage': 'Try a different category or check back later.'
+    'themes.noThemesMessage': 'Try a different category or check back later.',
+    // Orders status labels
+    'orders.status': 'Status',
+    'orders.status.packaging': 'Packaging',
+    'orders.status.processing': 'Processing',
+    'orders.status.confirmed': 'Confirmed',
+    'orders.status.shipping': 'Shipping',
+    'orders.status.shipped': 'Shipped',
+    'orders.status.in_transit': 'In Transit',
+    'orders.status.completed': 'Completed',
+    'orders.status.delivered': 'Delivered',
+    'orders.status.canceled': 'Canceled',
+    'orders.status.cancelled': 'Canceled'
   },
   km: {
     'nav.home': 'ទំព័រដើម',
@@ -121,8 +159,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'cart.addedCount': '~ {count} ផលិតផល',
     // OTP / Auth
     'otp.payAndLogin': 'បង់ប្រាក់ • ចូលដោយលេខទូរស័ព្ទ',
-    'otp.enterCode': 'បញ្ចូលលេខកូដ ៦ ខ្ទង់ ដែលបានផ្ញើទៅទូរស័ព្ទរបស់អ្នក',
-    'otp.codePlaceholder': '123456',
+    'otp.enterCode': 'បញ្ចូលលេខកូដ ៤ ខ្ទង់ ដែលបានផ្ញើទៅទូរស័ព្ទរបស់អ្នក',
+    'otp.codePlaceholder': '1234',
     'otp.verify': 'ផ្ទៀងផ្ទាត់កូដ',
     'otp.verifying': 'កំពុងផ្ទៀងផ្ទាត់...',
     'otp.resend': 'ផ្ញើម្ដងទៀត',
@@ -134,6 +172,13 @@ const messages: Record<Locale, Record<string, string>> = {
     'otp.noSession': 'រកមិនឃើញសម័យ OTP។ សូមផ្ញើកូដម្ដងទៀត។',
     'otp.phoneRequired': 'សូមបញ្ចូលលេខទូរស័ព្ទជាមុនសិន។',
     'otp.firebaseNotReady': 'Firebase មិនទាន់ផ្ទុក xong ទេ។ សូមរង់ចាំហើយព្យាយាមម្ដងទៀត។',
+    // Auth
+    'auth.login': 'ចូលគណនី',
+    'auth.sendCode': 'ផ្ញើកូដ',
+    'auth.manageAccount': 'គ្រប់គ្រងគណនី',
+    'auth.admin': 'អ្នកគ្រប់គ្រង',
+    'auth.logout': 'ចាកចេញ',
+    'auth.loggedOut': 'បានចាកចេញ',
     // Checkout
     'checkout.buyerInfo': 'ព័ត៌មានអ្នកទិញ',
     'checkout.name': 'ឈ្មោះពេញ',
@@ -143,6 +188,7 @@ const messages: Record<Locale, Record<string, string>> = {
     'checkout.province': 'ខេត្ដ/ខេត្ត',
     'checkout.note': 'កំណត់ចំណាំទៅអ្នកលក់',
     'checkout.payment': 'វិធីបង់ប្រាក់',
+    'checkout.paymentMethod': 'វិធីបង់ប្រាក់',
     'checkout.bakongKhqr': 'បាគុង KHQR',
     'checkout.khqrDesc': 'បង់ប្រាក់ដោយសុវត្ថិភាពតាមការ​ស្កេន KHQR។',
     'checkout.khqrNote': 'យើងនឹងបង្កើត KHQR សម្រាប់ចំនួនសរុបពេលបញ្ជាក់។',
@@ -154,6 +200,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'checkout.addressPlaceholder': 'ផ្ទះ លេខ ផ្លូវ សង្កាត់ ខណ្ឌ',
     'checkout.provincePlaceholder': 'ជ្រើសរើសខេត្ត/ក្រុង',
     'checkout.notePlaceholder': 'កំណត់ចំណាំការដឹកជញ្ជូនទៅអ្នកលក់',
+    // Orders
+    'orders.downloadInvoice': 'ទាញយកវិក្កយបត្រ (JPG)',
     // Themes
     'themes.title': 'ទាញយកស្បែក UI',
     'themes.description': 'រកមើល និងទាញយកស្បែក UI និងវិដជិតស្រេចប្រើ។',
@@ -163,17 +211,39 @@ const messages: Record<Locale, Record<string, string>> = {
     'themes.downloadSuccess': 'ទាញយក {name} បានជោគជ័យ!',
     'themes.downloadFailed': 'ទាញយកស្បែកបរាជ័យ។',
     'themes.noThemes': 'មិនមានស្បែក',
-    'themes.noThemesMessage': 'សូមសាកល្បងប្រភេទផ្សេង ឬត្រឡប់មកពេលក្រោយ។'
+    'themes.noThemesMessage': 'សូមសាកល្បងប្រភេទផ្សេង ឬត្រឡប់មកពេលក្រោយ។',
+    // Orders status labels
+    'orders.status': 'ស្ថានភាព',
+    'orders.status.packaging': 'កំពុងត្រៀម',
+    'orders.status.processing': 'កំពុងដំណើរការ',
+    'orders.status.confirmed': 'បានបញ្ជាក់',
+    'orders.status.shipping': 'កំពុងដឹកជញ្ជូន',
+    'orders.status.shipped': 'បានដឹកចេញ',
+    'orders.status.in_transit': 'កំពុងធ្វើដំណើរ',
+    'orders.status.completed': 'បញ្ចប់',
+    'orders.status.delivered': 'បានដឹកដល់',
+    'orders.status.canceled': 'បានបោះបង់',
+    'orders.status.cancelled': 'បានបោះបង់'
   }
 }
 
 const isClient = typeof window !== 'undefined'
 const saved = isClient ? (window.localStorage.getItem('locale') as Locale | null) : null
-const localeRef = ref<Locale>(saved || 'km')
+let initial: Locale = 'en'
+if (!saved && isClient) {
+  const nav = (navigator?.language || navigator?.languages?.[0] || '').toLowerCase()
+  if (nav.startsWith('km')) initial = 'km'
+  else initial = 'en'
+}
+const localeRef = ref<Locale>(saved || initial)
 
 watch(localeRef, (val) => {
-  if (isClient) window.localStorage.setItem('locale', val)
-})
+  if (isClient) {
+    window.localStorage.setItem('locale', val)
+    // Reflect language on <html> for font switching
+    document.documentElement.setAttribute('lang', val)
+  }
+}, { immediate: true })
 
 export function useI18n() {
   const locale = localeRef
@@ -184,5 +254,14 @@ export function useI18n() {
   const toggleLanguage = () => {
     locale.value = locale.value === 'en' ? 'km' : 'en'
   }
-  return { locale, t, isEn, isKm, setLocale, toggleLanguage }
+  const provinces = computed(() => (locale.value === 'km' ? PROVINCES_KM : PROVINCES_EN))
+  const provinceOptions = computed(() =>
+    PROVINCES_EN.map((en, i) => ({ value: en, label: locale.value === 'km' ? (PROVINCES_KM[i] || en) : en }))
+  )
+  const provinceLabel = (value: string) => {
+    const idx = PROVINCES_EN.indexOf(value)
+    if (idx === -1) return value
+    return locale.value === 'km' ? (PROVINCES_KM[idx] || value) : value
+  }
+  return { locale, t, isEn, isKm, setLocale, toggleLanguage, provinces, provinceOptions, provinceLabel }
 }

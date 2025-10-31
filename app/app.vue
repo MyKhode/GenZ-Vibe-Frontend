@@ -7,15 +7,19 @@
 </template>
 
 <script setup lang="ts">
-useHead({
+import { useI18n } from '~/composables/useI18n'
+
+const { locale } = useI18n()
+
+useHead(() => ({
   htmlAttrs: {
-    lang: 'en'
+    lang: locale.value || 'km'
   },
   bodyAttrs: {
     class: 'dark'
   },
-  title: 'Peak Premium Audio - Gaming Headsets'
-})
+  title: 'GenZ Vibe — Modern Minimal Products in Cambodia'
+}))
 </script>
 
 <style>

@@ -42,7 +42,34 @@ const props = defineProps<{
 
 defineEmits<{ close: [] }>()
 
-const thumb = computed(() => props.product?.images?.[0] || '')
+const runtimeConfig = useRuntimeConfig()
+const apiBase = (runtimeConfig.public?.apiBase || '') as string
+const toAbsolute = (src: string): string => {
+  if (!src) return ''
+  if (/^(https?:)?\/\//.test(src) || src.startsWith('data:')) return src
+  const base = apiBase.replace(/\/$/, '')
+  const path = src.replace(/^\//, '')
+  return base ? `${base}/${path}` : `/${path}`
+}
+type AddonItem = { id?: number; name?: string; price?: number; image?: string | null }
+function safeParse(s: string) { try { return JSON.parse(s) } catch { return {} } }
+function imageOf(p?: Product | null): string {
+  if (!p) return ''
+  const sel = (p as any)?.selectedImage as string | undefined
+  if (sel) return toAbsolute(sel)
+  const firstLegacy = (p.images || [])[0]
+  if (firstLegacy) return toAbsolute(firstLegacy)
+  const raw = (p as any)?.options
+  const obj = typeof raw === 'string' ? safeParse(raw) : (raw || {})
+  const addons = (obj?.addons || {}) as Record<string, AddonItem[]>
+  const first = Object.values(addons)
+    .flatMap(arr => (Array.isArray(arr) ? arr : []) as AddonItem[])
+    .map(it => it.image)
+    .find(Boolean)
+  return first ? toAbsolute(first as string) : ''
+}
+
+const thumb = computed(() => imageOf(props.product))
 const { t } = useI18n()
 </script>
 

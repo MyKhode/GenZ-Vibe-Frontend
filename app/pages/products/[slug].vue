@@ -110,10 +110,10 @@
           </template>
         </div>
 
-        <div class="mb-6" v-if="product.features?.length">
+        <div class="mb-6" v-if="normalizedFeatures.length">
           <h3 class="font-semibold text-foreground mb-2">Features</h3>
           <ul class="space-y-2 list-disc pl-5">
-            <li v-for="feature in product.features" :key="feature" class="text-sm text-muted-foreground">{{ feature }}</li>
+            <li v-for="(feature, i) in normalizedFeatures" :key="i + '-' + feature" class="text-sm text-muted-foreground">{{ feature }}</li>
           </ul>
         </div>
 
@@ -172,9 +172,18 @@ const colorItems = computed<AddonItem[]>(() => (colorGroup.value?.items || []))
 const colorGroupKey = computed<string>(() => colorGroup.value?.key || '')
 
 // Build flat images array from all addon items
-const images = computed<string[]>(() => addonGroups.value
-  .flatMap(g => (g.items || []).map(it => it.image).filter(Boolean) as string[])
-)
+type ImageIndexRef = { src: string; groupKey: string; itemIndex: number }
+const imageIndexMap = computed<ImageIndexRef[]>(() => {
+  const out: ImageIndexRef[] = []
+  for (const g of addonGroups.value) {
+    const arr = g.items || []
+    arr.forEach((it, idx) => {
+      if (it?.image) out.push({ src: it.image, groupKey: g.key, itemIndex: idx })
+    })
+  }
+  return out
+})
+const images = computed<string[]>(() => imageIndexMap.value.map(x => x.src))
 const selectedImageIndex = ref(0)
 watch(images, (arr) => {
   if (!arr || arr.length === 0) { selectedImageIndex.value = 0; return }
@@ -215,6 +224,14 @@ const toAbsolute = (src: string): string => {
 const currentImage = computed(() => {
   const src = images.value[selectedImageIndex.value]
   return src ? toAbsolute(src) : ''
+})
+
+// When image preview changes, sync related option selection
+watch(selectedImageIndex, (idx) => {
+  const meta = imageIndexMap.value[idx]
+  if (!meta) return
+  // Only update the specific group that owns this image
+  selectedIndexByGroup.value = { ...selectedIndexByGroup.value, [meta.groupKey]: meta.itemIndex }
 })
 
 const qtyInCart = computed(() => (product.value ? countOf(product.value.id) : 0))
@@ -266,7 +283,7 @@ const jsonLd = computed(() => {
     name: p.name,
     description: p.description,
     image: imgs,
-    brand: { '@type': 'Brand', name: 'Peak Audio' },
+    brand: { '@type': 'Brand', name: 'GenZ Vibe' },
     offers: {
       '@type': 'Offer',
       priceCurrency: 'USD',
@@ -280,24 +297,54 @@ function safeParse(s: string) {
   try { return JSON.parse(s) } catch { return {} }
 }
 
-useHead(() => {
-  const title = product.value ? `${product.value.name} | Peak Premium Audio` : 'Product | Peak Premium Audio'
-  const description = product.value?.description || 'Explore premium audio products and detailed specifications.'
-  const canonical = `https://example.com/products/${route.params.slug}`
-  return {
-    title,
-    meta: [
-      { name: 'description', content: description },
-      { name: 'robots', content: 'index,follow' }
-    ],
-    link: [{ rel: 'canonical', href: canonical }],
-    script: [
-      {
-        key: 'product-jsonld',
-        type: 'application/ld+json',
-        children: jsonLd.value
-      }
-    ]
+// Normalize features: split on literal "\n" and actual newlines
+const normalizedFeatures = computed<string[]>(() => {
+  const arr = (product.value?.features || []) as string[]
+  const out: string[] = []
+  for (const raw of arr) {
+    if (!raw) continue
+    const parts = String(raw)
+      .replace(/\\n/g, "\n")
+      .split(/\n/)
+      .map(s => s.trim())
+      .filter(Boolean)
+    out.push(...parts)
   }
+  return out
+})
+
+const reqUrl = useRequestURL()
+const origin = reqUrl.origin
+const headTitle = computed(() => (product.value ? `${product.value.name} | GenZ Vibe` : 'Product | GenZ Vibe'))
+const headDescription = computed(() => product.value?.description || 'Explore premium audio products and detailed specifications.')
+const headCanonical = computed(() => `${origin}/products/${String(route.params.slug)}`)
+const headImage = computed(() => {
+  const rawFirst = (product.value?.images || [])[0] || images.value[0] || ''
+  return rawFirst ? toAbsolute(rawFirst) : (origin + '/images/cover.jpg')
+})
+
+useHead({
+  title: headTitle,
+  meta: [
+    { name: 'description', content: headDescription },
+    { name: 'robots', content: 'index,follow' },
+    { property: 'og:title', content: headTitle },
+    { property: 'og:description', content: headDescription },
+    { property: 'og:type', content: 'product' },
+    { property: 'og:url', content: headCanonical },
+    { property: 'og:image', content: headImage },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: headTitle },
+    { name: 'twitter:description', content: headDescription },
+    { name: 'twitter:image', content: headImage }
+  ],
+  link: [{ rel: 'canonical', href: headCanonical }],
+  script: [
+    {
+      key: 'product-jsonld',
+      type: 'application/ld+json',
+      innerHTML: jsonLd.value
+    }
+  ]
 })
 </script>

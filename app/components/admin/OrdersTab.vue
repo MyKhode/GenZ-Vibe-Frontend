@@ -39,6 +39,9 @@
             <button class="p-2 rounded-lg border border-border hover:bg-secondary" @click="printOrder(ord)" aria-label="Print order">
               <Printer class="w-4 h-4" />
             </button>
+            <button class="p-2 rounded-lg border border-border hover:bg-secondary" @click="downloadOrderJpg(ord)" aria-label="Download JPG receipt">
+              <Download class="w-4 h-4" />
+            </button>
             <button class="p-2 rounded-lg border border-border hover:bg-secondary" @click="openEdit(ord)" aria-label="Edit order">
               <Pencil class="w-4 h-4" />
             </button>
@@ -120,7 +123,7 @@
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useAuth } from '~/composables/useAuth'
-import { RefreshCw, Plus, Trash2, Pencil, Printer } from 'lucide-vue-next'
+import { RefreshCw, Plus, Trash2, Pencil, Printer, Download } from 'lucide-vue-next'
 
 const api = useApi()
 const auth = useAuth()
@@ -253,6 +256,46 @@ const printOrder = (ord: any) => {
   </body></html>`
   w.document.write(html)
   w.document.close()
+}
+
+const downloadOrderJpg = async (ord: any) => {
+  // Build a clean, print-friendly receipt container to render
+  const container = document.createElement('div')
+  container.id = 'order-receipt-render'
+  container.style.position = 'fixed'
+  container.style.left = '-99999px'
+  container.style.top = '0'
+  container.innerHTML = `
+    <div style="width:420px;background:#ffffff;color:#111827;padding:24px;border-radius:12px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:6px;">
+          <img src="/images/logo.png" alt="GenZ Vibe" style="height:28px;width:auto" />
+          <div style="font-weight:800;color:#16a34a;font-size:18px;">Order Receipt</div>
+        </div>
+        <div style="font-size:12px;color:#6b7280;">GenZ Vibe • Tel: 096 407 4300</div>
+      </div>
+      <div style="border-bottom:1px dashed #d1d5db;padding-bottom:8px;margin-bottom:8px;font-size:13px;">
+        <div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:#6b7280">Order ID:</span><span style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas; color:#1f2937">#${ord.id}</span></div>
+        <div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:#6b7280">Product:</span><span style="color:#1f2937">${ord.product_name}</span></div>
+        <div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:#6b7280">Option:</span><span style="color:#1f2937">${ord.product_option || '-'}</span></div>
+        <div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:#6b7280">Quantity:</span><span style="color:#1f2937">${ord.quantity}</span></div>
+        <div style="display:flex;justify-content:space-between;margin:2px 0"><span style="color:#6b7280">Price:</span><span style="color:#1f2937">$${Number(ord.price || 0).toFixed(2)}</span></div>
+      </div>
+      <div style="text-align:center;color:#9ca3af;font-size:12px;">Thank you for your order!</div>
+    </div>
+  `
+  document.body.appendChild(container)
+  try {
+    const html2canvas = await import('html2canvas').then(m => m.default)
+    const node = container.firstElementChild as HTMLElement
+    const canvas = await html2canvas(node, { backgroundColor: '#ffffff', scale: 2, logging: false })
+    const link = document.createElement('a')
+    link.download = `order-${ord.id}.jpg`
+    link.href = canvas.toDataURL('image/jpeg', 0.95)
+    link.click()
+  } finally {
+    document.body.removeChild(container)
+  }
 }
 
 load()

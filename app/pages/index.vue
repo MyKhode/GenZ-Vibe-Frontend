@@ -15,24 +15,7 @@
       @apply="handleApplyFilters"
     />
 
-    <!-- Pagination: Previous | Page X | Next -->
-    <div class="mt-8 flex items-center justify-center gap-4">
-      <button
-        class="px-3 py-1.5 rounded-lg border border-border disabled:opacity-50"
-        :disabled="page === 1"
-        @click="goPage(page - 1)"
-      >
-        Previous
-      </button>
-      <span class="text-sm text-muted-foreground">Page {{ page }}</span>
-      <button
-        class="px-3 py-1.5 rounded-lg border border-border disabled:opacity-50"
-        :disabled="!hasMore"
-        @click="goPage(page + 1)"
-      >
-        Next
-      </button>
-    </div>
+    <!-- Pagination removed: show all products -->
   </div>
 </template>
 
@@ -46,13 +29,24 @@ import { fetchProducts } from '~/services/products'
 import { toSlug } from '~/utils/slug'
 import { useUiState } from '~/composables/useUiState'
 
+const reqUrl = useRequestURL()
+const origin = reqUrl.origin
 useHead({
-  title: 'Premium Products | Peak Audio',
+  title: 'GenZ Vibe | Premium GenZ Products',
   meta: [
-    { name: 'description', content: 'Discover premium GenZ goods and audio products.' },
-    { name: 'robots', content: 'index,follow' }
+    { name: 'description', content: 'បង្កើនបទពិសោធន៍ថ្មី រសជាតិថ្មី នៅលើទឹកដីចាស់ ! quality, customizable, creativity and premium' },
+    { name: 'robots', content: 'index,follow' },
+    { property: 'og:title', content: 'GenZ Vibe | Premium GenZ Products' },
+    { property: 'og:description', content: 'បង្កើនបទពិសោធន៍ថ្មី រសជាតិថ្មី នៅលើទឹកដីចាស់ ! quality, customizable, creativity and premium' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: origin + '/' },
+    { property: 'og:image', content: origin + '/images/cover.jpg' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: 'GenZ Vibe | Premium GenZ Products' },
+    { name: 'twitter:description', content: 'បង្កើនបទពិសោធន៍ថ្មី រសជាតិថ្មី នៅលើទឹកដីចាស់ ! quality, customizable, creativity and premium' },
+    { name: 'twitter:image', content: origin + '/images/cover.jpg' }
   ],
-  link: [{ rel: 'canonical', href: 'https://example.com/' }]
+  link: [{ rel: 'canonical', href: origin + '/' }]
 })
 
 const route = useRoute()
@@ -61,6 +55,7 @@ const ui = useUiState()
 
 const products = ref<Product[]>([])
 const isLoading = ref(true)
+// Pagination removed
 const page = ref(1)
 const pageSize = ref(12)
 const hasMore = ref(false)
@@ -96,10 +91,10 @@ const load = async () => {
   isLoading.value = true
   try {
     const q = (route.query.q as string) || ''
-    const offset = (page.value - 1) * pageSize.value
-    const items = await fetchProducts({ search: q, limit: pageSize.value, offset })
+    // fetch all by omitting limit/offset
+    const items = await fetchProducts({ search: q })
     products.value = items
-    hasMore.value = items.length === pageSize.value
+    hasMore.value = false
   } finally {
     isLoading.value = false
   }
@@ -119,11 +114,8 @@ watch(() => route.query.q, async () => {
   await load()
 })
 
-const goPage = async (p: number) => {
-  if (p < 1) return
-  page.value = p
-  await load()
-}
+// No-op since pagination removed
+const goPage = async (_p: number) => { await load() }
 
 const goToProduct = (product: Product) => {
   router.push(`/products/${product.id}`)

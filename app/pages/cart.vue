@@ -11,7 +11,7 @@ import CartView from '~/components/CartView.vue'
 import { useCart } from '~/composables/useCart'
 
 useHead({
-  title: 'Cart | Peak Premium Audio',
+  title: 'Cart | GenZ Vibe',
   meta: [
     { name: 'description', content: 'View and manage items in your shopping cart.' },
     { name: 'robots', content: 'index,follow' }

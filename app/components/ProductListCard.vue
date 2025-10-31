@@ -1,88 +1,70 @@
 <template>
-  <div class="bg-card rounded-3xl p-6 lg:p-8 border border-border">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-          <Headphones class="w-6 h-6 text-primary-foreground" />
-        </div>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <button class="p-2 hover:bg-secondary rounded-lg transition-colors">
-          <Search class="w-5 h-5 text-muted-foreground" />
-        </button>
-        <button class="p-2 hover:bg-secondary rounded-lg transition-colors">
-          <SlidersHorizontal class="w-5 h-5 text-muted-foreground" />
-        </button>
-      </div>
+  <section>
+    <!-- Title (hidden on mobile) -->
+    <div class="hidden sm:flex items-center justify-between mb-4">
+      <h2 class="font-display text-2xl lg:text-3xl font-bold text-foreground">Products</h2>
+      <div class="text-sm text-muted-foreground" v-if="filtered.length">{{ filtered.length }} items</div>
     </div>
 
-    <!-- Title -->
-    <div class="mb-6">
-      <h1 class="font-display text-4xl lg:text-5xl font-bold leading-tight mb-2">
-        <span class="text-foreground">PEAK</span><br>
-        <span class="text-foreground">PREMIUM</span><br>
-        <span class="text-primary">AUDIO</span>
-      </h1>
-      <p class="text-muted-foreground text-sm">Buy Now, Pay Now</p>
-    </div>
-
-    <!-- Featured Products -->
-    <div class="space-y-4">
-      <h2 class="font-display text-xl font-bold text-foreground mb-4">
-        Featured<br>
-        <span class="text-2xl">PRODUCTS</span>
-      </h2>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <template v-if="loading === true">
-          <ProductCardSkeleton v-for="i in (skeletonCount || 4)" :key="`pls-${i}`" />
-        </template>
-        <template v-else>
-          <ProductCard 
-            v-for="product in products" 
-            :key="product.id"
-            :product="product"
-            @click="$emit('selectProduct', product)"
-          />
-        </template>
-      </div>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <div class="flex items-center justify-center gap-6 mt-8 pt-6 border-t border-border">
-      <button class="p-2 hover:bg-secondary rounded-lg transition-colors">
-        <Home class="w-5 h-5 text-muted-foreground" />
-      </button>
-      <button class="p-3 bg-primary rounded-lg transition-colors">
-        <ShoppingCart class="w-5 h-5 text-primary-foreground" />
-      </button>
-      <button class="p-2 hover:bg-secondary rounded-lg transition-colors">
-        <FileText class="w-5 h-5 text-muted-foreground" />
-      </button>
-      <button class="p-2 hover:bg-secondary rounded-lg transition-colors">
-        <Heart class="w-5 h-5 text-muted-foreground" />
+    <!-- Category selector -->
+    <div class="mb-4 flex items-center gap-2 overflow-x-auto">
+      <button
+        v-for="c in categories"
+        :key="c"
+        type="button"
+        class="px-3 py-1.5 rounded-full border text-sm whitespace-nowrap"
+        :class="selected === c ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-foreground border-border hover:bg-secondary/80'"
+        @click="selected = c"
+      >
+        {{ c }}
       </button>
     </div>
-  </div>
+
+    <!-- Grid -->
+    <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+      <ProductCardSkeleton v-for="i in 8" :key="'sk-'+i" />
+    </div>
+    <div v-else-if="filtered.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+      <ProductCard
+        v-for="p in filtered"
+        :key="p.id"
+        :product="p"
+        @click="$emit('selectProduct', p)"
+      />
+    </div>
+    <div v-else class="text-center py-10 text-muted-foreground">No products found.</div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { Headphones, Search, SlidersHorizontal, Home, ShoppingCart, FileText, Heart } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
 import type { Product } from '~/types/product'
+import { fetchProducts } from '~/services/products'
+import ProductCard from '~/components/ProductCard.vue'
 import ProductCardSkeleton from '~/components/ProductCardSkeleton.vue'
 
-withDefaults(defineProps<{
-  products: Product[]
-  loading?: boolean
-  skeletonCount?: number
-}>(), {
-  loading: false,
-  skeletonCount: 4
+defineEmits<{ selectProduct: [product: Product] }>()
+
+const loading = ref(true)
+const items = ref<Product[]>([])
+
+const selected = ref<string>('All')
+const categories = computed<string[]>(() => {
+  const types = Array.from(new Set(items.value.map(p => (p.type || '').trim()).filter(Boolean)))
+  return ['All', ...types]
+})
+const filtered = computed<Product[]>(() => {
+  if (selected.value === 'All') return items.value
+  return items.value.filter(p => String(p.type || '').trim().toLowerCase() === selected.value.toLowerCase())
 })
 
-defineEmits<{
-  selectProduct: [product: Product]
-}>()
+onMounted(async () => {
+  loading.value = true
+  try {
+    items.value = await fetchProducts()
+  } finally {
+    loading.value = false
+  }
+})
 </script>
+

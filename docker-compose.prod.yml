@@ -1,0 +1,15 @@
+services:
+  app:
+    container_name: genz-vibe-frontend-prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9192:9192"
+    environment:
+      - NODE_ENV=production
+      - PORT=9192
+      - NITRO_PORT=9192
+      - NUXT_PUBLIC_API_BASE=https://api.ikhode.com
+    restart: unless-stopped
+

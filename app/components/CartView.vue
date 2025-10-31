@@ -22,17 +22,17 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex">
-                <h3 class="font-bold text-foreground text-lg mb-1 truncate">{{ item.name }} &nbsp;</h3>
+                <h3 class="font-bold text-foreground text-lg mb-1 truncate">{{ nameOf(item) }} &nbsp;</h3>
                 <div class="flex items-center gap-2">
-                  <p class="text-xl font-bold text-foreground"> ~ ${{ (toNum(item.price)).toFixed(2) }}</p>
+                  <p class="text-xl font-bold text-foreground"> ~ ${{ priceOf(item).toFixed(2) }}</p>
                 </div>
               </div>
               <p class="text-sm text-muted-foreground mb-2">{{ item.type }}</p>
               <!-- Selected options -->
               <div v-if="selectedOptionsText(item)" class="text-sm items-center flex text-muted-foreground mb-2">
                 {{ selectedOptionsText(item) }} <p v-if="optionSurcharge(item) > 0"
-                  class="text-xs text-muted-foreground">&nbsp; (+${{
-                    optionSurcharge(item).toFixed(2) }} options)</p>
+                  class="text-xs text-muted-foreground">&nbsp;+ ${{
+                    optionSurcharge(item).toFixed(2) }} </p>
               </div>
             </div>
             <button class="p-2 hover:bg-secondary rounded-lg transition-colors self-start"
@@ -51,15 +51,21 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="flex flex-col gap-2">
                 <label for="buyer-name" class="text-sm text-muted-foreground">{{ t('checkout.name') }}</label>
-                <input id="buyer-name" v-model="form.name" type="text"
-                  class="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  :placeholder="t('checkout.namePlaceholder')" />
+                <div class="relative">
+                  <User class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input id="buyer-name" v-model="form.name" type="text"
+                    class="pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full"
+                    :placeholder="t('checkout.namePlaceholder')" />
+                </div>
               </div>
               <div class="flex flex-col gap-2">
                 <label for="buyer-phone" class="text-sm text-muted-foreground">{{ t('checkout.phone') }}</label>
-                <input id="buyer-phone" v-model="form.phone" type="tel"
-                  class="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  :placeholder="t('checkout.phonePlaceholder')" />
+                <div class="relative">
+                  <Phone class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input id="buyer-phone" v-model="form.phone" type="tel"
+                    class="pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full"
+                    :placeholder="t('checkout.phonePlaceholder')" />
+                </div>
               </div>
             </div>
           </section>
@@ -70,27 +76,59 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="md:col-span-2 flex flex-col gap-2">
                 <label for="full-address" class="text-sm text-muted-foreground">{{ t('checkout.fullAddress') }}</label>
-                <input id="full-address" v-model="form.address" type="text"
-                  class="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  :placeholder="t('checkout.addressPlaceholder')" />
+                <div class="relative">
+                  <MapPin class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input id="full-address" v-model="form.address" type="text"
+                    class="pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full"
+                    :placeholder="t('checkout.addressPlaceholder')" />
+                </div>
               </div>
-              <div class="flex flex-col gap-2">
-                <label for="province" class="text-sm text-muted-foreground">{{ t('checkout.province') }}</label>
-                <select id="province" v-model="form.province"
-                  class="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="" disabled>{{ t('checkout.provincePlaceholder') }}</option>
-                  <option v-for="p in provinces" :key="p" :value="p">{{ p }}</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-2">
-                <label for="note" class="text-sm text-muted-foreground">{{ t('checkout.note') }}</label>
-                <input id="note" v-model="form.note" type="text"
-                  class="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  :placeholder="t('checkout.notePlaceholder')" />
+              <div class="md:col-span-2 flex flex-col md:flex-row gap-4">
+                <div class="flex flex-col gap-2 flex-1">
+                  <label for="province" class="text-sm text-muted-foreground">{{ t('checkout.province') }}</label>
+                  <div class="relative">
+                    <Navigation class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <select id="province" v-model="form.province"
+                      class="pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full">
+                      <option value="" disabled>{{ t('checkout.provincePlaceholder') }}</option>
+                      <option v-for="op in provinceOptions" :key="op.value" :value="op.value">{{ op.label }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2 flex-1">
+                  <label for="note" class="text-sm text-muted-foreground">{{ t('checkout.note') }}</label>
+                  <div class="relative">
+                    <StickyNote class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input id="note" v-model="form.note" type="text"
+                      class="pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full"
+                      :placeholder="t('checkout.notePlaceholder')" />
+                  </div>
+                </div>
               </div>
             </div>
           </section>
+
+          <!-- Payment Method -->
+          <section class="bg-card rounded-2xl p-6 border border-border">
+            <h2 class="text-xl font-bold text-foreground mb-4">{{ t('checkout.payment') }}</h2>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 p-3 rounded-lg border-2 border-primary bg-primary/5 cursor-pointer">
+                <div class="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                  <div class="w-3 h-3 rounded-full bg-primary"></div>
+                </div>
+                <div class="flex items-center gap-3 flex-1">
+                  <img src="/images/khqr-1.jpg" alt="KHQR" class="h-8 rounded-sm w-auto" />
+                  <div>
+                    <p class="font-semibold text-foreground">{{ t('checkout.bakongKhqr') }}</p>
+                    <p class="text-xs text-muted-foreground">{{ t('checkout.khqrDesc') }}</p>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-muted-foreground px-1">We encourage to use ABA only for transactions.</p>
+            </div>
+          </section>
         </div>
+
 
         <!-- Summary -->
         <div class="lg:col-span-1">
@@ -100,8 +138,8 @@
               <div class="space-y-2 text-sm">
                 <div v-for="(p, i) in cartItems" :key="'sum-' + i" class="">
                   <div class="flex justify-between text-foreground">
-                    <span class="truncate mr-2">{{ p.name }}</span>
-                    <span>${{ toNum(p.price).toFixed(2) }}</span>
+                    <span class="truncate mr-2">{{ nameOf(p) }}</span>
+                    <span>${{ priceOf(p).toFixed(2) }}</span>
                   </div>
                   <div class="pl-3 mt-1 space-y-1" v-if="optionEntries(p).length">
                     <div v-for="(op, j) in optionEntries(p)" :key="'sumop-' + i + '-' + j"
@@ -141,13 +179,28 @@
     <OtpModal :open="showOtpModal" :phone="formatKhPhone(form.phone)" @close="showOtpModal = false"
       @verified="handleOtpVerified" />
 
+    <!-- Receipt Modal (after success) -->
+    <ReceiptModal
+      :open="receiptOpen"
+      :orderId="receiptOrderId"
+      :orderDate="receiptOrderDate"
+      :customerName="receiptCustomerName"
+      :customerPhone="receiptCustomerPhone"
+      :items="receiptItems"
+      :subtotal="receiptSubtotal"
+      :shipping="receiptShipping"
+      :total="receiptTotal"
+      @close="receiptOpen = false"
+    />
+
     <!-- Payment Modal -->
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="payModalOpen" class="fixed inset-0 z-[85] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/40" />
           <div class="relative z-10 bg-card rounded-2xl p-5 border border-border w-full max-w-md">
-            <button class="absolute top-3 right-3 p-2 rounded-lg hover:bg-secondary" @click="payModalOpen = false; stopPolling(); paymentMD5 = '';" aria-label="Close">
+            <button class="absolute top-3 right-3 p-2 rounded-lg hover:bg-secondary"
+              @click="payModalOpen = false; stopPolling(); paymentMD5 = '';" aria-label="Close">
               <X class="w-4 h-4 text-muted-foreground" />
             </button>
             <h3 class="text-lg font-bold mb-2 text-foreground">Complete Payment</h3>
@@ -155,13 +208,13 @@
             <p v-if="optionSummary" class="text-xs text-muted-foreground mt-1">{{ optionSummary }}</p>
             <div class="mt-3 flex flex-col items-center gap-3">
               <QrCode v-if="paymentQRString" :text="paymentQRString" :size="240" ref="qrRef" />
-              
+
               <div class="w-full flex gap-2 mt-2">
                 <button class="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground"
                   :disabled="!paymentDeeplink" @click="openDeeplink">Open in Bakong App</button>
                 <button class="px-3 py-2 rounded-lg border border-border" @click="downloadQr">Download QR</button>
               </div>
-              
+
             </div>
           </div>
         </div>
@@ -174,10 +227,11 @@
 import { computed, ref, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import { useApi } from '~/composables/useApi'
-import { ShoppingCart, Headphones, Trash2, X } from 'lucide-vue-next'
+import { ShoppingCart, Headphones, Trash2, X, User, Phone, MapPin, StickyNote, Navigation } from 'lucide-vue-next'
 import type { Product } from '~/types/product'
 import { useI18n } from '~/composables/useI18n'
 import OtpModal from '~/components/OtpModal.vue'
+import ReceiptModal from '~/components/ReceiptModal.vue'
 import { useNotify } from '~/composables/useNotify'
 import { useCart } from '~/composables/useCart'
 import QrCode from '~/components/QrCode.vue'
@@ -194,6 +248,10 @@ const toNum = (v: any): number => {
   const n = Number(v)
   return Number.isFinite(n) ? n : 0
 }
+const priceOf = (p: Product): number => {
+  const dp = (p as any)?.discount_price
+  return toNum(dp != null ? dp : p.price)
+}
 const optionSurcharge = (p: Product): number => {
   const sel = (p as any)?.selectedOptions as Record<string, number> | undefined
   if (!sel) return 0
@@ -208,7 +266,7 @@ const optionSurcharge = (p: Product): number => {
   }
   return extra
 }
-const baseSubtotal = computed(() => props.cartItems.reduce((sum, item) => sum + toNum(item.price), 0))
+const baseSubtotal = computed(() => props.cartItems.reduce((sum, item) => sum + priceOf(item), 0))
 const optionsTotal = computed(() => props.cartItems.reduce((sum, item) => sum + optionSurcharge(item), 0))
 const subtotal = computed(() => baseSubtotal.value + optionsTotal.value)
 
@@ -235,7 +293,7 @@ function optionEntries(p: Product): { key: string; name: string; price: number }
   return out
 }
 
-const { t } = useI18n()
+const { t, provinceOptions, locale } = useI18n()
 const authState = useAuth()
 const api = useApi()
 const isLoggedIn = computed(() => !!authState.token.value)
@@ -288,6 +346,12 @@ function selectedOptionsText(p: Product): string {
   return parts.join(', ')
 }
 
+function nameOf(p: Product): string {
+  const anyp = p as any
+  if (locale.value === 'km') return anyp.name_km || anyp.nameKm || p.name
+  return p.name
+}
+
 const form = ref({
   name: '',
   phone: '',
@@ -296,13 +360,7 @@ const form = ref({
   note: '',
 })
 
-const provinces = [
-  'Banteay Meanchey', 'Battambang', 'Kampong Cham', 'Kampong Chhnang',
-  'Kampong Speu', 'Kampong Thom', 'Kampot', 'Kandal', 'Kep', 'Koh Kong',
-  'Kratié', 'Mondulkiri', 'Oddar Meanchey', 'Pailin', 'Preah Sihanouk',
-  'Preah Vihear', 'Pursat', 'Prey Veng', 'Ratanakiri', 'Siem Reap',
-  'Stung Treng', 'Svay Rieng', 'Takeo', 'Tbong Khmum',
-]
+// Province options now come from i18n (KM/EN)
 
 const showOtpModal = ref(false)
 
@@ -347,6 +405,18 @@ const paymentMD5 = ref('')
 const optionSummary = ref('')
 const paymentStatus = ref<'idle' | 'pending' | 'success' | 'failed'>('idle')
 let pollTimer: any = null
+
+// Receipt modal state (shown after successful purchase)
+const receiptOpen = ref(false)
+const receiptOrderId = ref('')
+const receiptOrderDate = ref('')
+const receiptCustomerName = ref('')
+const receiptCustomerPhone = ref('')
+type ReceiptItem = { name: string; price: number; options?: string }
+const receiptItems = ref<ReceiptItem[]>([])
+const receiptSubtotal = ref(0)
+const receiptShipping = ref(0)
+const receiptTotal = ref(0)
 
 // Build checkout payload for new secure flow (single product)
 const buildCheckoutPayload = () => {
@@ -422,7 +492,7 @@ const startPollingStatus = () => {
           paymentStatus.value = 'success'
         }
       }
-    } catch {}
+    } catch { }
 
     // Always try confirm; backend returns 202 until paid
     const result = await confirmOrder()
@@ -443,7 +513,7 @@ const startPollingStatus = () => {
   }, 3000)
 }
 const stopPolling = () => { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
-const confirmOrder = async (): Promise<'confirmed'|'pending'|'error'> => {
+const confirmOrder = async (): Promise<'confirmed' | 'pending' | 'error'> => {
   const payload = buildCheckoutPayload()
   if (!payload || !paymentMD5.value) return 'error'
   const body = { ...payload, md5: paymentMD5.value }
@@ -453,6 +523,23 @@ const confirmOrder = async (): Promise<'confirmed'|'pending'|'error'> => {
     return 'pending'
   }
   if (res.ok) {
+    // Try parse response for order id
+    let data: any = null
+    try { data = await res.json() } catch {}
+    // Prepare receipt data
+    receiptOrderId.value = String(data?.id || data?.order_id || paymentMD5.value || Date.now())
+    receiptOrderDate.value = new Date().toLocaleString()
+    receiptCustomerName.value = form.value.name
+    receiptCustomerPhone.value = formatKhPhone(form.value.phone)
+    receiptItems.value = props.cartItems.map((p) => ({
+      name: p.name,
+      price: priceOf(p) + optionSurcharge(p),
+      options: selectedOptionsText(p) || undefined,
+    }))
+    receiptSubtotal.value = subtotal.value
+    receiptShipping.value = shipping.value
+    receiptTotal.value = total.value
+    receiptOpen.value = true
     notify.success('Order confirmed')
     cart.clear()
     return 'confirmed'
@@ -485,10 +572,24 @@ const fetchMe = async () => {
     form.value.name = me.full_name || ''
     form.value.phone = me.phone_number || ''
     form.value.address = me.address || ''
-    form.value.province = me.province || ''
+    form.value.province = normalizeProvince(me.province || '')
+    if (!form.value.province) form.value.province = 'Phnom Penh'
   } catch (e) {
     console.error(e)
   }
+}
+
+// Ensure we always store province in English value while showing KM/EN label
+function normalizeProvince(input: string): string {
+  if (!input) return ''
+  const opts = provinceOptions.value
+  // Match by value (EN)
+  const byValue = opts.find(o => o.value.toLowerCase() === input.toLowerCase())
+  if (byValue) return byValue.value
+  // Match by label (could be KM)
+  const byLabel = opts.find(o => o.label.toLowerCase() === input.toLowerCase())
+  if (byLabel) return byLabel.value
+  return input
 }
 
 const upsertUserProfile = async () => {
@@ -514,5 +615,7 @@ onMounted(() => {
   if (isLoggedIn.value) {
     fetchMe()
   }
+  // Default province if none set (guest users)
+  if (!form.value.province) form.value.province = 'Phnom Penh'
 })
 </script>

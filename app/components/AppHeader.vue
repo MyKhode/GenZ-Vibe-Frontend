@@ -3,10 +3,16 @@
     <div class="container mx-auto max-w-7xl px-4 py-4">
       <div class="flex items-center gap-4">
         <!-- Logo / Brand -->
-        <NuxtLink to="/" class="flex items-center gap-3 shrink-0" aria-label="Peak Audio Home">
-          <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Headphones class="w-6 h-6 text-primary-foreground" />
-          </div>
+        <NuxtLink to="/" class="flex items-center gap-3 shrink-0" aria-label="GenZ Vibe Home">
+          <img
+            src="/images/logo.png"
+            alt="GenZ Vibe logo"
+            width="40"
+            height="40"
+            class="w-10 h-10 rounded-lg object-contain bg-transparent"
+            loading="eager"
+            decoding="async"
+          />
           <div class="hidden sm:block">
             <span class="font-display text-xl font-bold text-foreground">GenZ Vibe</span>
           </div>
@@ -89,7 +95,7 @@
               v-if="showMore"
               class="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden"
             >
-              <div class="px-3 py-2 text-xs uppercase text-muted-foreground">language</div>
+              <div class="px-3 py-2 text-xs uppercase text-muted-foreground">{{ t('menu.language') }}</div>
               <div class="px-2 pb-2 flex items-center gap-2">
                 <button 
                   class="flex-1 px-3 py-1.5 rounded-md border text-sm"
@@ -109,15 +115,15 @@
               <div class="h-px bg-border" />
               <!-- Auth area: login when logged out; account/logout when logged in -->
               <div v-if="!isLoggedIn" class="p-3 space-y-2">
-                <label class="block text-xs uppercase text-muted-foreground">Login</label>
+                <label class="block text-xs uppercase text-muted-foreground">{{ t('auth.login') }}</label>
                 <input v-model="loginPhone" type="tel" class="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary" placeholder="+855 12 345 678" />
-                <button class="w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60" :disabled="!loginPhone.trim()" @click="openOtp()">Send Code</button>
+                <button class="w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60" :disabled="!loginPhone.trim()" @click="openOtp()">{{ t('auth.sendCode') }}</button>
               </div>
               <div v-else class="p-2">
                 <div class="px-3 py-2 text-xs uppercase text-muted-foreground">Account</div>
-                <NuxtLink v-if="isAdmin" class="block px-4 py-2 hover:bg-secondary text-sm" to="/admin" @click="showMore=false">Admin</NuxtLink>
-                <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm" @click="openAccount">Manage Account</button>
-                <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm text-red-500" @click="logout">Logout</button>
+                <NuxtLink v-if="isAdmin" class="block px-4 py-2 hover:bg-secondary text-sm" to="/admin" @click="showMore=false">{{ t('auth.admin') }}</NuxtLink>
+                <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm" @click="openAccount">{{ t('auth.manageAccount') }}</button>
+                <button class="w-full text-left px-4 py-2 hover:bg-secondary text-sm text-red-500" @click="logout">{{ t('auth.logout') }}</button>
               </div>
             </div>
           </Transition>
@@ -133,11 +139,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Headphones, Search, PanelTopOpen, PanelTopClose } from 'lucide-vue-next'
+import { Search, PanelTopOpen, PanelTopClose } from 'lucide-vue-next'
 import type { Product } from '~/types/product'
 import { fetchProducts } from '~/services/products'
 import { useUiState } from '~/composables/useUiState'
 import { useI18n } from '~/composables/useI18n'
+import { useNotify } from '~/composables/useNotify'
 import { useAuth } from '~/composables/useAuth'
 import { useApi } from '~/composables/useApi'
 import OtpModal from '~/components/OtpModal.vue'
@@ -149,6 +156,7 @@ const ui = useUiState()
 const { t, setLocale, locale } = useI18n()
 const auth = useAuth()
 const api = useApi()
+const notify = useNotify()
 
 const searchInput = ref<string>((route.query.q as string) || '')
 const showSuggestions = ref(false)
@@ -284,6 +292,7 @@ const handleOtpVerified = async (token: string) => {
       auth.setProfile(me)
     }
   } catch {}
+  notify.success(t('otp.verified'))
   showOtp.value = false
 }
 
@@ -296,6 +305,7 @@ const logout = () => {
   auth.setToken(null)
   auth.setProfile(null)
   showMore.value = false
+  notify.info(t('auth.loggedOut'))
 }
 </script>
 

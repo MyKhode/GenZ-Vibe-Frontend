@@ -4,7 +4,7 @@
     @click="$emit('click')"
   >
     <!-- Product Image -->
-    <div class="relative mb-0.5 md:mb-4 aspect-square flex items-center justify-center">
+    <div class="relative mb-0.5 md:mb-2 aspect-square flex items-center justify-center">
       <div 
         class="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
       >
@@ -32,15 +32,15 @@
     <div class="space-y-2">
       <div class="flex items-center justify-between gap-3">
         <h3
-          class="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors truncate min-w-0 flex-1"
+          class="font-display text-sm md:text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate min-w-0 flex-1"
           :title="displayName"
         >
           {{ displayName }}
         </h3>
-        <span class="text-lg font-bold text-foreground shrink-0 whitespace-nowrap">
+        <span class="text-xs md:text-lg font-bold text-foreground shrink-0 whitespace-nowrap">
           <template v-if="product.discount_price && product.discount_price < product.price">
             <span class="text-red-500">${{ Number(product.discount_price).toFixed(2) }}</span>
-            <span class="text-muted-foreground line-through ml-2 text-sm">${{ product.price.toFixed(2) }}</span>
+            <span class="text-muted-foreground line-through ml-1 text-xs md:text-sm">${{ product.price.toFixed(2) }}</span>
           </template>
           <template v-else>
             ${{ product.price.toFixed(2) }}

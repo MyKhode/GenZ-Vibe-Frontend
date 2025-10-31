@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="font-display text-4xl lg:text-5xl font-bold text-foreground mb-8">
+    <h1 class="font-oswald text-4xl lg:text-5xl font-bold text-foreground mb-8">
       {{ t('themes.title') }}
     </h1>
 
@@ -28,7 +28,19 @@
 
     <!-- Themes Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Skeletons while loading -->
+      <template v-if="loading">
+        <div v-for="i in 5" :key="'sk-'+i" class="bg-card rounded-2xl border border-border overflow-hidden">
+          <div class="aspect-video bg-secondary animate-pulse" />
+          <div class="p-6 space-y-3">
+            <div class="h-4 bg-secondary rounded w-2/3 animate-pulse" />
+            <div class="h-3 bg-secondary/80 rounded w-11/12 animate-pulse" />
+            <div class="h-10 bg-secondary rounded-xl animate-pulse" />
+          </div>
+        </div>
+      </template>
       <div 
+        v-else
         v-for="theme in filteredThemes"
         :key="theme.id"
         class="bg-card rounded-2xl border border-border overflow-hidden group"
@@ -65,7 +77,7 @@
           </div>
           <!-- Download Button -->
           <button 
-            class="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            class="font-oswald w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             :disabled="downloading === theme.id"
             @click="handleDownload(theme)"
           >
@@ -109,11 +121,16 @@ const themes = ref<ThemeItem[]>([])
 const categories = ref<string[]>([])
 const downloading = ref<string | null>(null)
 const api = useApi()
+const loading = ref(true)
 
 onMounted(async () => {
-  const items = await fetchThemes({ limit: 100 })
-  themes.value = items
-  categories.value = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[]
+  try {
+    const items = await fetchThemes({ limit: 100 })
+    themes.value = items
+    categories.value = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[]
+  } finally {
+    loading.value = false
+  }
 })
 
 const selectedCategory = ref('')
@@ -146,7 +163,7 @@ const handleDownload = async (theme: ThemeItem) => {
   downloading.value = theme.id
   try {
     // First, register the download with backend and get updated info
-    let filePath = theme.file
+    let filePath: string | undefined = theme.file
     try {
       const res = await api.post(`/themes/${encodeURIComponent(theme.id)}/download`, {})
       if (res.ok) {
@@ -158,6 +175,11 @@ const handleDownload = async (theme: ThemeItem) => {
       }
     } catch {}
 
+    // Guard: ensure we have a file path
+    if (!filePath) {
+      alert(t('themes.downloadFailed'))
+      return
+    }
     const success = await downloadTheme(filePath, theme.id)
     if (success) {
       alert(t('themes.downloadSuccess').replace('{name}', theme.title))

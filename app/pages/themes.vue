@@ -6,7 +6,6 @@
 import ThemesView from '~/components/ThemesView.vue'
 
 useHead({
-  title: 'Themes | Peak Premium Audio'
+  title: 'Themes | GenZ Vibe'
 })
 </script>
-
