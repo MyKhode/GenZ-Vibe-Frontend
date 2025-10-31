@@ -11,14 +11,38 @@
       <!-- Left: Basic info and image (desktop); full on mobile -->
       <section>
         <!-- Static image area tied to selected option -->
-        <div class="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-secondary mb-4">
-          <img 
-            v-if="currentImage"
-            :src="currentImage"
-            :alt="pName"
-            class="absolute inset-0 w-full h-full object-cover"
-            loading="lazy"
-          />
+        <div 
+          ref="sliderWrap"
+          class="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-secondary mb-4 select-none touch-pan-y"
+          :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @pointercancel="onPointerUp"
+          @pointerleave="onPointerUp"
+        >
+          <!-- Slides -->
+          <div class="absolute inset-0 overflow-hidden">
+            <div 
+              class="h-full w-full flex"
+              :class="!dragging && 'transition-transform duration-300 ease-out'"
+              :style="sliderStyle"
+            >
+              <div 
+                v-for="(src, i) in images" 
+                :key="'slide-' + i"
+                class="w-full h-full flex-shrink-0"
+              >
+                <img 
+                  :src="toAbsolute(src)"
+                  :alt="pName + ' ' + (i+1)"
+                  class="w-full h-full object-cover"
+                  draggable="false"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          </div>
 
           <!-- Image dots for all available addon images -->
           <div v-if="images.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
@@ -225,6 +249,72 @@ const currentImage = computed(() => {
   const src = images.value[selectedImageIndex.value]
   return src ? toAbsolute(src) : ''
 })
+
+// Swipe/drag slider state
+const sliderWrap = ref<HTMLElement | null>(null)
+const dragging = ref(false)
+const isPointerDown = ref(false)
+const dragStartX = ref(0)
+const dragStartY = ref(0)
+const dragDeltaX = ref(0)
+const activePointerId = ref<number | null>(null)
+const sliderStyle = computed(() => {
+  const width = sliderWrap.value?.clientWidth || 1
+  const deltaPct = dragging.value ? (dragDeltaX.value / width) * 100 : 0
+  const base = -selectedImageIndex.value * 100
+  return { transform: `translateX(${base + deltaPct}%)` }
+})
+function onPointerDown(e: PointerEvent) {
+  if (!images.value.length) return
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+  activePointerId.value = e.pointerId
+  isPointerDown.value = true
+  dragging.value = false
+  dragStartX.value = e.clientX
+  dragStartY.value = e.clientY
+  dragDeltaX.value = 0
+  try { (e.target as Element)?.setPointerCapture?.(e.pointerId) } catch {}
+  // Prevent text/image selection while dragging
+  try { document.body.style.userSelect = 'none' } catch {}
+}
+function onPointerMove(e: PointerEvent) {
+  if (!isPointerDown.value) return
+  if (activePointerId.value !== e.pointerId) return
+  const dx = e.clientX - dragStartX.value
+  const dy = e.clientY - dragStartY.value
+  if (!dragging.value) {
+    // Activate horizontal drag only if moving mostly horizontally past a small threshold
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+      dragging.value = true
+    } else {
+      return
+    }
+  }
+  dragDeltaX.value = dx
+}
+function onPointerUp(e: PointerEvent) {
+  if (activePointerId.value !== e.pointerId) {
+    dragging.value = false
+    isPointerDown.value = false
+    dragDeltaX.value = 0
+    return
+  }
+  if (dragging.value) {
+    const width = sliderWrap.value?.clientWidth || 1
+    const threshold = Math.max(40, width * 0.15)
+    if (dragDeltaX.value <= -threshold && selectedImageIndex.value < images.value.length - 1) {
+      selectedImageIndex.value += 1
+    } else if (dragDeltaX.value >= threshold && selectedImageIndex.value > 0) {
+      selectedImageIndex.value -= 1
+    }
+  }
+  dragging.value = false
+  isPointerDown.value = false
+  dragDeltaX.value = 0
+  try { sliderWrap.value?.releasePointerCapture?.(e.pointerId) } catch {}
+  activePointerId.value = null
+  try { document.body.style.userSelect = '' } catch {}
+}
 
 // When image preview changes, sync related option selection
 watch(selectedImageIndex, (idx) => {
